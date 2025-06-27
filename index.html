@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Staking Platform - Home</title>
+    <title>VNST Staking Platform</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
-        <img src="assets/logo.png" alt="Logo" class="logo">
+        <img src="logo.png" alt="Logo" class="logo">
         <div class="menu-toggle" onclick="toggleMenu()">☰</div>
         <ul id="nav-links">
             <li><a href="index.html" class="active">Home</a></li>
             <li><a href="staking.html">Staking</a></li>
             <li><a href="team.html">Team</a></li>
+            <li><button id="connectWalletNavBtn" class="wallet-connect-btn">Connect Wallet</button></li>
         </ul>
     </nav>
 
@@ -24,25 +27,25 @@
                 <div class="card">
                     <h3>Total Users</h3>
                     <div class="card-content">
-                        <p id="totalUsers">12,548</p>
+                        <p id="totalUsers">0</p>
                     </div>
                 </div>
                 <div class="card">
                     <h3>Total Staked</h3>
                     <div class="card-content">
-                        <p id="totalStaked">5,842,000 VNST</p>
+                        <p id="totalStaked">0 VNST</p>
                     </div>
                 </div>
                 <div class="card">
                     <h3>Total Withdrawn</h3>
                     <div class="card-content">
-                        <p id="totalWithdrawn">2,156,000 VNST</p>
+                        <p id="totalWithdrawn">0 VNST</p>
                     </div>
                 </div>
                 <div class="card">
                     <h3>Active Staking</h3>
                     <div class="card-content">
-                        <p id="activeStaking">3,686,000 VNST</p>
+                        <p id="activeStaking">0 VNST</p>
                     </div>
                 </div>
             </div>
@@ -52,7 +55,7 @@
             <h2>How It Works</h2>
             <div class="cards-container">
                 <div class="card">
-                    <h3>Stake Tokens</h3>
+                    <h3>Stake VNST</h3>
                     <ul>
                         <li>Lock your VNST tokens</li>
                         <li>Earn daily rewards</li>
@@ -80,18 +83,9 @@
     </main>
 
     <footer>
-        <p>&copy; 2023 Token Staking Platform. All rights reserved.</p>
+        <p>&copy; 2025 VNST Staking Platform. All rights reserved.</p>
     </footer>
 
     <script src="script.js"></script>
-    <script>
-        // Additional home page specific animations
-        document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.card');
-            cards.forEach((card, index) => {
-                card.style.transitionDelay = `${index * 0.1}s`;
-            });
-        });
-    </script>
 </body>
 </html>
