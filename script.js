@@ -1,70 +1,9 @@
-// Contract ABIs
+// Contract ABIs - REPLACE WITH YOUR ACTUAL CONTRACT ABIs
 const vnstStakingABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"}],"name":"Blacklisted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"EmergencyWithdraw","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"account","type":"address"}],"name":"Paused","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"newPercent","type":"uint256"}],"name":"ROIPercentChanged","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":true,"internalType":"address","name":"referrer","type":"address"},{"indexed":false,"internalType":"uint256","name":"level","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"bool","name":"inVNST","type":"bool"}],"name":"ReferralEarned","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"vntAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"usdtAmount","type":"uint256"}],"name":"RewardClaimed","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"newRate","type":"uint256"}],"name":"RewardRateChanged","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"address","name":"referrer","type":"address"}],"name":"Staked","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"newVnstPrice","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"newVntPrice","type":"uint256"}],"name":"TokenPricesUpdated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"}],"name":"Unblacklisted","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"account","type":"address"}],"name":"Unpaused","type":"event"},{"inputs":[],"name":"ANTI_SYBLOCK_DURATION","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"CLAIM_INTERVAL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"MAX_STAKE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"MIN_STAKE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"MIN_VNT_WITHDRAWAL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"REWARD_INTERVAL","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"WITHDRAWAL_FEE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"annualRewardRate","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"autoStakeWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"blacklistUser","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"blacklisted","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"claimRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"dailyROIPercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"directIncomePercents","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"emergencyWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feeWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"forceClaim","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getLevelReferralCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"level","type":"uint256"}],"name":"getLevelReferrals","outputs":[{"internalType":"address[]","name":"","type":"address[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getPendingRewards","outputs":[{"internalType":"uint256","name":"vntReward","type":"uint256"},{"internalType":"uint256","name":"usdtReward","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getReferralCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getUserStats","outputs":[{"internalType":"uint256","name":"totalStaked","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"},{"internalType":"uint256","name":"directMembers","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getWalletBalances","outputs":[{"internalType":"uint256","name":"vnstStakingBalance","type":"uint256"},{"internalType":"uint256","name":"vntRewardBalance","type":"uint256"},{"internalType":"uint256","name":"usdtRewardBalance","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_vnstToken","type":"address"},{"internalType":"address","name":"_vntToken","type":"address"},{"internalType":"address","name":"_usdtToken","type":"address"},{"internalType":"address","name":"_vnstStakingWallet","type":"address"},{"internalType":"address","name":"_vntRewardWallet","type":"address"},{"internalType":"address","name":"_usdtRewardWallet","type":"address"},{"internalType":"address","name":"_autoStakeWallet","type":"address"},{"internalType":"address","name":"_feeWallet","type":"address"}],"name":"initialize","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"levelReferrals","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"pause","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"paused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"recoverETH","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"tokenAddress","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"recoverTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"referrals","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"requiredDirectMembers","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"rewards","outputs":[{"internalType":"uint256","name":"pendingVNT","type":"uint256"},{"internalType":"uint256","name":"pendingUSDT","type":"uint256"},{"internalType":"uint256","name":"claimedVNT","type":"uint256"},{"internalType":"uint256","name":"claimedUSDT","type":"uint256"},{"internalType":"uint256","name":"lastClaimTime","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_dailyROIPercent","type":"uint256"}],"name":"setDailyROIPercent","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_annualRewardRate","type":"uint256"}],"name":"setRewardRate","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_vnstPrice","type":"uint256"},{"internalType":"uint256","name":"_vntPrice","type":"uint256"}],"name":"setTokenPrices","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_vnstStakingWallet","type":"address"},{"internalType":"address","name":"_vntRewardWallet","type":"address"},{"internalType":"address","name":"_usdtRewardWallet","type":"address"},{"internalType":"address","name":"_autoStakeWallet","type":"address"},{"internalType":"address","name":"_feeWallet","type":"address"}],"name":"setWallets","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"address","name":"referrer","type":"address"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"stakes","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"startTime","type":"uint256"},{"internalType":"uint256","name":"lastClaimTime","type":"uint256"},{"internalType":"address","name":"referrer","type":"address"},{"internalType":"bool","name":"active","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"unblacklistUser","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unpause","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"usdtRewardWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"usdtToken","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"userStats","outputs":[{"internalType":"uint256","name":"totalDirectMembers","type":"uint256"},{"internalType":"uint256","name":"totalStaked","type":"uint256"},{"internalType":"uint256","name":"totalEarned","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vnstPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vnstStakingWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vnstToken","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vntPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vntRewardWallet","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"vntToken","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
-const erc20ABI = [
-    // Standard ERC20 ABI
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "name",
-        "outputs": [{"name": "", "type": "string"}],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "symbol",
-        "outputs": [{"name": "", "type": "string"}],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "decimals",
-        "outputs": [{"name": "", "type": "uint8"}],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [{"name": "_owner", "type": "address"}],
-        "name": "balanceOf",
-        "outputs": [{"name": "balance", "type": "uint256"}],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {"name": "_spender", "type": "address"},
-            {"name": "_value", "type": "uint256"}
-        ],
-        "name": "approve",
-        "outputs": [{"name": "", "type": "bool"}],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {"name": "_to", "type": "address"},
-            {"name": "_value", "type": "uint256"}
-        ],
-        "name": "transfer",
-        "outputs": [{"name": "", "type": "bool"}],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    }
-];
 
-// Network Configurations
+const erc20ABI = [{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"_decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"_name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"_symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"subtractedValue","type":"uint256"}],"name":"decreaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"getOwner","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"addedValue","type":"uint256"}],"name":"increaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"mint","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"renounceOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"sender","type":"address"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}];
+
+// Network Configurations - REPLACE WITH YOUR ACTUAL ADDRESSES
 const networkConfig = {
     testnet: {
         chainId: '0x61', // 97 in decimal
@@ -91,10 +30,10 @@ const networkConfig = {
         },
         rpcUrls: ['https://bsc-dataseed.binance.org/'],
         blockExplorerUrls: ['https://bscscan.com'],
-        contractAddress: '0xYourMainnetContractAddress',
-        vnstTokenAddress: '0xYourMainnetVNSTAddress',
-        vntTokenAddress: '0xYourMainnetVNTAddress',
-        usdtTokenAddress: '0xYourMainnetUSDTAddress'
+        contractAddress: 'YOUR_MAINNET_CONTRACT_ADDRESS',
+        vnstTokenAddress: 'YOUR_MAINNET_VNST_ADDRESS',
+        vntTokenAddress: 'YOUR_MAINNET_VNT_ADDRESS',
+        usdtTokenAddress: 'YOUR_MAINNET_USDT_ADDRESS'
     }
 };
 
@@ -262,7 +201,7 @@ function updateWalletConnectionUI(address) {
     
     // Update referral link
     if (document.getElementById('referralLink')) {
-        document.getElementById('referralLink').value = `${window.location.origin}?ref=${currentAccount}`;
+        document.getElementById('referralLink').value = `${window.location.origin}/staking.html?ref=${currentAccount}`;
     }
 }
 
@@ -290,23 +229,27 @@ async function loadData() {
 // Load Global Stats
 async function loadGlobalStats() {
     try {
-        // Get total users (example - replace with actual contract call)
-        const totalUsers = await vnstStakingContract.methods.getTotalUsers().call();
+        // Get total users
+        const totalUsers = await vnstStakingContract.methods.totalUsers().call();
         document.getElementById('totalUsers').textContent = formatNumber(totalUsers);
         
         // Get total staked
-        const totalStaked = await vnstStakingContract.methods.getTotalStaked().call();
+        const totalStaked = await vnstStakingContract.methods.totalStaked().call();
         document.getElementById('totalStaked').textContent = `${formatNumber(web3.utils.fromWei(totalStaked, 'ether'))} VNST`;
         
         // Get total withdrawn
-        const totalWithdrawn = await vnstStakingContract.methods.getTotalWithdrawn().call();
+        const totalWithdrawn = await vnstStakingContract.methods.totalWithdrawn().call();
         document.getElementById('totalWithdrawn').textContent = `${formatNumber(web3.utils.fromWei(totalWithdrawn, 'ether'))} VNST`;
         
-        // Get active staking
-        const activeStaking = await vnstStakingContract.methods.getActiveStaking().call();
-        document.getElementById('activeStaking').textContent = `${formatNumber(web3.utils.fromWei(activeStaking, 'ether'))} VNST`;
+        // Get active staking (using total staked as example - adjust according to your contract)
+        document.getElementById('activeStaking').textContent = `${formatNumber(web3.utils.fromWei(totalStaked, 'ether'))} VNST`;
     } catch (error) {
         console.error("Error loading global stats:", error);
+        // Fallback to zeros if contract methods don't exist
+        document.getElementById('totalUsers').textContent = '0';
+        document.getElementById('totalStaked').textContent = '0 VNST';
+        document.getElementById('totalWithdrawn').textContent = '0 VNST';
+        document.getElementById('activeStaking').textContent = '0 VNST';
         throw error;
     }
 }
@@ -364,6 +307,24 @@ async function loadUserData() {
     }
 }
 
+// Calculate Daily ROI
+async function calculateDailyROI(userAddress) {
+    try {
+        const userStake = await vnstStakingContract.methods.stakes(userAddress).call();
+        const dailyROIPercent = await vnstStakingContract.methods.dailyROIPercent().call();
+        const vnstPrice = await vnstStakingContract.methods.vnstPrice().call();
+        
+        const stakedAmount = web3.utils.fromWei(userStake.amount, 'ether');
+        const roiAmount = (stakedAmount * dailyROIPercent) / 100;
+        const roiInUsdt = roiAmount * vnstPrice;
+        
+        return roiInUsdt;
+    } catch (error) {
+        console.error("Error calculating daily ROI:", error);
+        return 0;
+    }
+}
+
 // Load Team Data
 async function loadTeamData() {
     try {
@@ -416,7 +377,7 @@ async function loadTeamData() {
         for (let level = 1; level <= 5; level++) {
             const statusElement = document.getElementById(`level${level}Status`);
             const requiredMembers = await vnstStakingContract.methods.requiredDirectMembers(level - 1).call();
-            const hasEnoughMembers = directMembers >= requiredMembers;
+            const hasEnoughMembers = parseInt(directMembers) >= parseInt(requiredMembers);
             
             if (hasEnoughMembers) {
                 statusElement.textContent = 'Active';
@@ -433,249 +394,204 @@ async function loadTeamData() {
 }
 
 // Stake Tokens
-async function stakeTokens(amount, referrer) {
+async function stakeTokens() {
     try {
-        if (!currentAccount) {
-            showError("Please connect your wallet first");
+        const amount = document.getElementById('stakeAmount').value;
+        const referrer = document.getElementById('referrerAddress').value;
+        
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            showError("Please enter a valid amount");
             return;
         }
         
         if (!referrer || !web3.utils.isAddress(referrer)) {
-            showError("Please enter a valid referrer wallet address");
+            showError("Please enter a valid referrer address");
             return;
         }
         
-        // Convert amount to wei
-        const amountWei = web3.utils.toWei(amount.toString(), 'ether');
+        const amountWei = web3.utils.toWei(amount, 'ether');
         
-        // Approve VNST token transfer
-        await vnstTokenContract.methods
-            .approve(networkConfig[currentNetwork].contractAddress, amountWei)
-            .send({ from: currentAccount });
+        // Check allowance
+        const allowance = await vnstTokenContract.methods.allowance(
+            currentAccount,
+            networkConfig[currentNetwork].contractAddress
+        ).call();
+        
+        if (parseInt(allowance) < parseInt(amountWei)) {
+            // Approve first
+            await vnstTokenContract.methods.approve(
+                networkConfig[currentNetwork].contractAddress,
+                amountWei
+            ).send({ from: currentAccount });
+        }
         
         // Stake tokens
-        await vnstStakingContract.methods
-            .stake(amountWei, referrer)
-            .send({ from: currentAccount });
+        await vnstStakingContract.methods.stake(
+            amountWei,
+            referrer
+        ).send({ from: currentAccount });
         
-        showSuccess(`Successfully staked ${amount} VNST!`);
-        await loadUserData();
+        showSuccess("Tokens staked successfully!");
+        await loadData();
     } catch (error) {
         console.error("Error staking tokens:", error);
-        showError("Staking failed: " + error.message);
+        showError("Error staking tokens: " + error.message);
     }
 }
 
 // Claim Rewards
 async function claimRewards() {
     try {
-        if (!currentAccount) {
-            showError("Please connect your wallet first");
-            return;
-        }
-        
-        await vnstStakingContract.methods
-            .claimRewards()
-            .send({ from: currentAccount });
-        
+        await vnstStakingContract.methods.claimRewards().send({ from: currentAccount });
         showSuccess("Rewards claimed successfully!");
-        await loadUserData();
+        await loadData();
     } catch (error) {
         console.error("Error claiming rewards:", error);
-        showError("Claim failed: " + error.message);
+        showError("Error claiming rewards: " + error.message);
     }
 }
 
-// Claim Level Rewards
-async function claimLevelRewards(level) {
-    try {
-        if (!currentAccount) {
-            showError("Please connect your wallet first");
-            return;
-        }
-        
-        await vnstStakingContract.methods
-            .claimLevelRewards(level)
-            .send({ from: currentAccount });
-        
-        showSuccess(`Level ${level} rewards claimed successfully!`);
-        await loadTeamData();
-    } catch (error) {
-        console.error("Error claiming level rewards:", error);
-        showError("Claim failed: " + error.message);
+// Copy Referral Link
+function copyReferralLink() {
+    const referralLink = document.getElementById('referralLink');
+    referralLink.select();
+    document.execCommand('copy');
+    showSuccess("Referral link copied to clipboard!");
+}
+
+// Share Referral Link
+function shareReferralLink() {
+    const referralLink = document.getElementById('referralLink').value;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'Join VNST Staking Platform',
+            text: 'Stake VNST tokens and earn rewards!',
+            url: referralLink
+        }).catch(err => {
+            console.error('Error sharing:', err);
+        });
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        window.open(`https://twitter.com/intent/tweet?text=Join%20VNST%20Staking%20Platform%20and%20earn%20rewards!%20${encodeURIComponent(referralLink)}`, '_blank');
     }
 }
 
-// Calculate Daily ROI
-async function calculateDailyROI(userAddress) {
-    try {
-        const userStake = await vnstStakingContract.methods.stakes(userAddress).call();
-        if (userStake.amount === '0') return '0';
-        
-        const roiPercent = await vnstStakingContract.methods.dailyROIPercent().call();
-        const vnstPrice = await vnstStakingContract.methods.vnstPrice().call();
-        
-        const dailyROI = (web3.utils.fromWei(userStake.amount, 'ether') * 
-                         web3.utils.fromWei(vnstPrice, 'ether') * 
-                         roiPercent) / 100;
-        
-        return dailyROI.toFixed(4);
-    } catch (error) {
-        console.error("Error calculating daily ROI:", error);
-        return '0';
-    }
+// Show Error Message
+function showError(message) {
+    const errorElement = document.createElement('div');
+    errorElement.className = 'error-message';
+    errorElement.textContent = message;
+    
+    document.body.appendChild(errorElement);
+    
+    setTimeout(() => {
+        errorElement.remove();
+    }, 5000);
 }
 
-// Helper Functions
+// Show Success Message
+function showSuccess(message) {
+    const successElement = document.createElement('div');
+    successElement.className = 'success-message';
+    successElement.textContent = message;
+    
+    document.body.appendChild(successElement);
+    
+    setTimeout(() => {
+        successElement.remove();
+    }, 5000);
+}
+
+// Format Number
 function formatNumber(num) {
     return parseFloat(num).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2
     });
 }
 
-function showSuccess(message) {
-    alert(message); // Replace with a nicer notification system
+// Initialize Event Listeners
+function initEventListeners() {
+    // Wallet connection buttons
+    document.querySelectorAll('.wallet-connect-btn, #connectWalletBtn, #teamConnectWalletBtn').forEach(btn => {
+        btn.addEventListener('click', connectWallet);
+    });
+    
+    // Stake button
+    if (document.getElementById('stakeBtn')) {
+        document.getElementById('stakeBtn').addEventListener('click', stakeTokens);
+    }
+    
+    // Claim buttons
+    if (document.getElementById('claimTokenBtn')) {
+        document.getElementById('claimTokenBtn').addEventListener('click', claimRewards);
+    }
+    
+    if (document.getElementById('claimUsdtBtn')) {
+        document.getElementById('claimUsdtBtn').addEventListener('click', claimRewards);
+    }
+    
+    // Level claim buttons
+    for (let i = 1; i <= 3; i++) {
+        const btn = document.getElementById(`claimLevel${i}Btn`);
+        if (btn) {
+            btn.addEventListener('click', claimRewards);
+        }
+    }
+    
+    // Referral buttons
+    if (document.getElementById('copyReferralBtn')) {
+        document.getElementById('copyReferralBtn').addEventListener('click', copyReferralLink);
+    }
+    
+    if (document.getElementById('shareReferralBtn')) {
+        document.getElementById('shareReferralBtn').addEventListener('click', shareReferralLink);
+    }
+    
+    // Menu toggle
+    if (document.querySelector('.menu-toggle')) {
+        document.querySelector('.menu-toggle').addEventListener('click', toggleMenu);
+    }
 }
 
-function showError(message) {
-    alert(message); // Replace with a nicer notification system
-}
-
-// Initialize Everything
-document.addEventListener('DOMContentLoaded', async function() {
-    // Setup UI components
-    toggleMenu();
+// Initialize App
+async function initApp() {
+    // Setup card animations
     setupCardAnimations();
     
-    // Initialize Web3 and contracts
-    await initWeb3();
+    // Initialize event listeners
+    initEventListeners();
     
-    // Setup wallet connection handlers
+    // Check if wallet is already connected
+    if (window.ethereum && window.ethereum.selectedAddress) {
+        currentAccount = window.ethereum.selectedAddress;
+        web3 = new Web3(window.ethereum);
+        await checkNetwork();
+        await initContracts();
+        updateWalletConnectionUI(currentAccount);
+        await loadData();
+    }
+    
+    // Listen for account changes
     if (window.ethereum) {
         window.ethereum.on('accountsChanged', (accounts) => {
             if (accounts.length === 0) {
                 // Wallet disconnected
-                location.reload();
+                window.location.reload();
             } else {
-                // Account changed
                 currentAccount = accounts[0];
                 updateWalletConnectionUI(currentAccount);
                 loadData();
             }
         });
         
-        window.ethereum.on('chainChanged', (chainId) => {
-            location.reload();
+        // Listen for chain changes
+        window.ethereum.on('chainChanged', () => {
+            window.location.reload();
         });
     }
-    
-    // Add event listeners for wallet connection
-    document.querySelectorAll('#connectWalletBtn, #teamConnectWalletBtn, #connectWalletNavBtn').forEach(btn => {
-        btn?.addEventListener('click', connectWallet);
-    });
-    
-    // Add stake form submission handler
-    document.getElementById('stakeBtn')?.addEventListener('click', async function() {
-        const amount = document.getElementById('stakeAmount').value;
-        const referrer = document.getElementById('referrerAddress').value;
-        
-        if (amount && amount > 0) {
-            await stakeTokens(amount, referrer);
-        } else {
-            showError('Please enter a valid amount');
-        }
-    });
-    
-    // Add claim buttons handlers
-    document.getElementById('claimTokenBtn')?.addEventListener('click', claimRewards);
-    document.getElementById('claimUsdtBtn')?.addEventListener('click', claimRewards);
-    
-    // Add team claim buttons handlers
-    for (let level = 1; level <= 5; level++) {
-        document.getElementById(`claimLevel${level}Btn`)?.addEventListener('click', () => claimLevelRewards(level));
-    }
-    
-    // Add referral link copy button
-    document.getElementById('copyReferralBtn')?.addEventListener('click', function() {
-        const referralLink = document.getElementById('referralLink');
-        referralLink.select();
-        document.execCommand('copy');
-        showSuccess('Referral link copied to clipboard!');
-    });
-    
-    // Add referral link share button
-    document.getElementById('shareReferralBtn')?.addEventListener('click', function() {
-        const referralLink = document.getElementById('referralLink').value;
-        if (navigator.share) {
-            navigator.share({
-                title: 'Join VNST Staking Platform',
-                text: 'Earn rewards by staking VNST tokens',
-                url: referralLink
-            }).catch(err => {
-                console.error('Error sharing:', err);
-            });
-        } else {
-            // Fallback for browsers that don't support Web Share API
-            window.open(`https://twitter.com/intent/tweet?text=Join%20VNST%20Staking%20Platform&url=${encodeURIComponent(referralLink)}`, '_blank');
-        }
-    });
-    
-    // Check for referral parameter in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const refAddress = urlParams.get('ref');
-    if (refAddress && web3.utils.isAddress(refAddress)) {
-        document.getElementById('referrerAddress').value = refAddress;
-    }
-});
+}
 
-// Add CSS for status indicators
-const style = document.createElement('style');
-style.textContent = `
-    .status-active {
-        color: #00ff00;
-        font-weight: bold;
-    }
-    
-    .status-locked {
-        color: #ff0000;
-        font-weight: bold;
-    }
-    
-    .wallet-connect-btn {
-        background: linear-gradient(135deg, var(--secondary-color), var(--hover-color));
-        color: var(--primary-color);
-        border: none;
-        padding: 0.5rem 1rem;
-        font-weight: bold;
-        border-radius: 50px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.9rem;
-        white-space: nowrap;
-    }
-    
-    .wallet-connect-btn.connected {
-        background: var(--card-bg);
-        color: var(--secondary-color);
-        border: 1px solid var(--secondary-color);
-    }
-    
-    input[type="text"], input[type="number"] {
-        background: var(--card-bg);
-        border: 1px solid var(--glass-border);
-        color: white;
-        padding: 0.5rem;
-        border-radius: 5px;
-        width: 100%;
-        margin-bottom: 1rem;
-    }
-    
-    @media (max-width: 768px) {
-        #nav-links li button.wallet-connect-btn {
-            margin-top: 1rem;
-            width: 100%;
-        }
-    }
-`;
-document.head.appendChild(style);
+// Start the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', initApp);
