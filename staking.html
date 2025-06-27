@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Staking Platform - Staking</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <img src="assets/logo.png" alt="Logo" class="logo">
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+        <ul id="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="staking.html" class="active">Staking</a></li>
+            <li><a href="team.html">Team</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="content-section">
+            <h2>Your Staking Dashboard</h2>
+            <div id="walletConnectSection" class="card" style="text-align: center;">
+                <h3>Connect Your Wallet</h3>
+                <button id="connectWalletBtn" class="btn">Connect Wallet</button>
+            </div>
+
+            <div id="stakingDashboard" style="display: none;">
+                <div class="cards-container">
+                    <div class="card">
+                        <h3>Your Wallet Address</h3>
+                        <div class="card-content">
+                            <p id="walletAddress">0x000...0000</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>VNST Balance</h3>
+                        <div class="card-content">
+                            <p id="walletBalance">0 VNST</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Your Total Staked</h3>
+                        <div class="card-content">
+                            <p id="userTotalStaked">0 VNST</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Total Withdrawn</h3>
+                        <div class="card-content">
+                            <p id="userTotalWithdrawn">0 VNST</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Active Staking</h3>
+                        <div class="card-content">
+                            <p id="userActiveStaking">0 VNST</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Level 1 Direct Income</h3>
+                        <div class="card-content">
+                            <p id="level1Income">0 USDT</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Level 2-5 Income</h3>
+                        <div class="card-content">
+                            <p id="level2to5Income">0 USDT</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Daily ROI Reward</h3>
+                        <div class="card-content">
+                            <p id="dailyROI">0 USDT</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem; text-align: center;">
+                    <h3>Staking Actions</h3>
+                    <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                        <button id="stakeBtn" class="btn">Stake VNST</button>
+                        <button id="claimTokenBtn" class="btn">Claim Token Rewards</button>
+                        <button id="claimUsdtBtn" class="btn">Claim USDT Rewards</button>
+                    </div>
+                </div>
+
+                <div id="stakeModal" class="wallet-modal" style="display: none;">
+                    <h3>Stake VNST Tokens</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="stakeAmount">Amount to Stake (VNST):</label>
+                        <input type="number" id="stakeAmount" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border-radius: 5px; border: 1px solid var(--glass-border); background: var(--card-bg); color: white;">
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="confirmStakeBtn" class="btn" style="flex: 1;">Confirm Stake</button>
+                        <button id="cancelStakeBtn" class="btn" style="flex: 1; background: var(--footer-bg);">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Token Staking Platform. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Staking page specific JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            const connectWalletBtn = document.getElementById('connectWalletBtn');
+            const stakingDashboard = document.getElementById('stakingDashboard');
+            const walletConnectSection = document.getElementById('walletConnectSection');
+            const stakeBtn = document.getElementById('stakeBtn');
+            const stakeModal = document.getElementById('stakeModal');
+            const confirmStakeBtn = document.getElementById('confirmStakeBtn');
+            const cancelStakeBtn = document.getElementById('cancelStakeBtn');
+            const claimTokenBtn = document.getElementById('claimTokenBtn');
+            const claimUsdtBtn = document.getElementById('claimUsdtBtn');
+
+            // Mock wallet connection
+            connectWalletBtn.addEventListener('click', function() {
+                // In a real app, this would connect to MetaMask or other wallet
+                walletConnectSection.style.display = 'none';
+                stakingDashboard.style.display = 'block';
+                
+                // Update with mock data
+                document.getElementById('walletAddress').textContent = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e';
+                document.getElementById('walletBalance').textContent = '10,000 VNST';
+                document.getElementById('userTotalStaked').textContent = '5,000 VNST';
+                document.getElementById('userTotalWithdrawn').textContent = '1,200 VNST';
+                document.getElementById('userActiveStaking').textContent = '3,800 VNST';
+                document.getElementById('level1Income').textContent = '150 USDT';
+                document.getElementById('level2to5Income').textContent = '320 USDT';
+                document.getElementById('dailyROI').textContent = '25 USDT';
+            });
+
+            // Stake button click
+            stakeBtn.addEventListener('click', function() {
+                stakeModal.style.display = 'block';
+            });
+
+            // Confirm stake
+            confirmStakeBtn.addEventListener('click', function() {
+                const amount = document.getElementById('stakeAmount').value;
+                if (amount && amount > 0) {
+                    alert(`Successfully staked ${amount} VNST!`);
+                    stakeModal.style.display = 'none';
+                } else {
+                    alert('Please enter a valid amount');
+                }
+            });
+
+            // Cancel stake
+            cancelStakeBtn.addEventListener('click', function() {
+                stakeModal.style.display = 'none';
+            });
+
+            // Claim buttons
+            claimTokenBtn.addEventListener('click', function() {
+                alert('Token rewards claimed successfully!');
+            });
+
+            claimUsdtBtn.addEventListener('click', function() {
+                alert('USDT rewards claimed successfully!');
+            });
+        });
+    </script>
+</body>
+</html>
