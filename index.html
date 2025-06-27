@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Staking Platform - Home</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <img src="assets/logo.png" alt="Logo" class="logo">
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+        <ul id="nav-links">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="staking.html">Staking</a></li>
+            <li><a href="team.html">Team</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="content-section">
+            <h2>Staking Dashboard</h2>
+            <div class="cards-container">
+                <div class="card">
+                    <h3>Total Users</h3>
+                    <div class="card-content">
+                        <p id="totalUsers">12,548</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Total Staked</h3>
+                    <div class="card-content">
+                        <p id="totalStaked">5,842,000 VNST</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Total Withdrawn</h3>
+                    <div class="card-content">
+                        <p id="totalWithdrawn">2,156,000 VNST</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Active Staking</h3>
+                    <div class="card-content">
+                        <p id="activeStaking">3,686,000 VNST</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-section">
+            <h2>How It Works</h2>
+            <div class="cards-container">
+                <div class="card">
+                    <h3>Stake Tokens</h3>
+                    <ul>
+                        <li>Lock your VNST tokens</li>
+                        <li>Earn daily rewards</li>
+                        <li>Flexible staking periods</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Earn Rewards</h3>
+                    <ul>
+                        <li>Daily ROI rewards</li>
+                        <li>Direct referral bonuses</li>
+                        <li>Team performance rewards</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Grow Your Team</h3>
+                    <ul>
+                        <li>Invite friends to join</li>
+                        <li>Earn from multiple levels</li>
+                        <li>Team staking bonuses</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Token Staking Platform. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Additional home page specific animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.transitionDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>
