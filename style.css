@@ -1,0 +1,102 @@
+/* Add these new styles to your existing style.css */
+
+/* Additional card animations */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  animation: none; /* Disable the default hover animation when bounce is active */
+}
+
+/* Bounce animation for cards */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Status indicators */
+.status-active {
+  color: #00ff00;
+  font-weight: bold;
+}
+
+.status-locked {
+  color: #ff0000;
+  font-weight: bold;
+}
+
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+th {
+  background: rgba(255, 179, 0, 0.1);
+}
+
+tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Input styles */
+input {
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 5px;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Center card content */
+.card-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 100px;
+  text-align: center;
+}
+
+.card-content p {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--secondary-color);
+  margin: 0;
+}
+
+/* Additional button styles */
+.btn {
+  margin: 0.5rem;
+}
+
+/* Modal overlay */
+.wallet-modal::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: -1;
+}
