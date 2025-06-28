@@ -83,6 +83,24 @@ function showSuccess(message) {
     }, 5000);
 }
 
+function showLoading(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const originalText = element.textContent;
+        element.dataset.originalText = originalText;
+        element.innerHTML = '<div class="loading-spinner"></div> Processing...';
+        element.disabled = true;
+    }
+}
+
+function hideLoading(elementId) {
+    const element = document.getElementById(elementId);
+    if (element && element.dataset.originalText) {
+        element.textContent = element.dataset.originalText;
+        element.disabled = false;
+    }
+}
+
 // Setup Card Animations
 function setupCardAnimations() {
     const cards = document.querySelectorAll('.card');
@@ -405,56 +423,165 @@ async function loadTeamData() {
 
 // Stake Tokens
 async function stakeTokens() {
+    const stakeBtn = document.getElementById('stakeBtn');
     try {
-        const amount = document.getElementById('stakeAmount').value;
-        const referrer = document.getElementById('referrerAddress').value;
+        showLoading('stakeBtn');
         
-        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-            showError("Please enter a valid amount (100-10000 VNST)");
+        const amount = document.getElementById('stakeAmount').value;
+        let referrer = document.getElementById('referrerAddress').value;
+        
+        // URL से रिफरर चेक करें
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRef = urlParams.get('ref');
+        if (!referrer && urlRef && web3.utils.isAddress(urlRef)) {
+            referrer = urlRef;
+            document.getElementById('referrerAddress').value = referrer;
+        }
+        
+        if (!amount || isNaN(amount)) {
+            showError("Please enter a valid amount");
+            hideLoading('stakeBtn');
+            return;
+        }
+        
+        const amountNum = parseFloat(amount);
+        if (amountNum < 100 || amountNum > 10000) {
+            showError("Amount must be between 100-10000 VNST");
+            hideLoading('stakeBtn');
             return;
         }
         
         if (!referrer || !web3.utils.isAddress(referrer)) {
             showError("Please enter a valid referrer wallet address");
+            hideLoading('stakeBtn');
+            return;
+        }
+        
+        // रिफरर वैलिडेशन
+        const referrerStake = await vnstStakingContract.methods.stakes(referrer).call();
+        if (!referrerStake.active) {
+            showError("Referrer must have an active stake");
+            hideLoading('stakeBtn');
             return;
         }
         
         const amountWei = web3.utils.toWei(amount, 'ether');
         
+        // अप्रूवल चेक करें
         const allowance = await vnstTokenContract.methods.allowance(
             currentAccount,
             networkConfig[currentNetwork].contractAddress
         ).call();
         
         if (parseInt(allowance) < parseInt(amountWei)) {
-            await vnstTokenContract.methods.approve(
-                networkConfig[currentNetwork].contractAddress,
-                amountWei
-            ).send({ from: currentAccount });
+            showSuccess("Approving tokens...");
+            try {
+                await vnstTokenContract.methods.approve(
+                    networkConfig[currentNetwork].contractAddress,
+                    amountWei
+                ).send({ 
+                    from: currentAccount,
+                    gas: 200000
+                });
+                
+                // ब्लॉकचेन अपडेट का इंतजार करें
+                await new Promise(resolve => setTimeout(resolve, 10000));
+                showSuccess("Approval confirmed. Now staking...");
+            } catch (approveError) {
+                console.error("Approval error:", approveError);
+                showError("Token approval failed");
+                hideLoading('stakeBtn');
+                return;
+            }
         }
         
-        await vnstStakingContract.methods.stake(
-            amountWei,
-            referrer
-        ).send({ from: currentAccount });
+        // स्टेक ट्रांजैक्शन भेजें
+        try {
+            await vnstStakingContract.methods.stake(
+                amountWei,
+                referrer
+            ).send({ 
+                from: currentAccount,
+                gas: 300000
+            });
+            
+            showSuccess("Tokens staked successfully!");
+            document.getElementById('stakeAmount').value = '';
+            await loadData();
+            
+        } catch (stakeError) {
+            console.error("Staking error:", stakeError);
+            let errorMsg = "Staking failed";
+            if (stakeError.message.includes("revert")) {
+                if (stakeError.message.includes("Invalid stake amount")) {
+                    errorMsg = "Amount must be between 100-10000 VNST";
+                } else if (stakeError.message.includes("Cannot refer yourself")) {
+                    errorMsg = "You cannot refer yourself";
+                } else if (stakeError.message.includes("User is blacklisted")) {
+                    errorMsg = "Your account is restricted";
+                } else if (stakeError.message.includes("Cannot refer recently created wallets")) {
+                    errorMsg = "Referrer wallet is too new";
+                } else {
+                    const revertReason = stakeError.message.match(/reason string: '(.+)'/);
+                    errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
+                }
+            } else if (stakeError.message.includes("User denied transaction")) {
+                errorMsg = "Transaction cancelled by user";
+            } else if (stakeError.message.includes("gas")) {
+                errorMsg = "Transaction failed. Try increasing gas limit.";
+            }
+            showError(errorMsg);
+        }
         
-        showSuccess("Tokens staked successfully!");
-        await loadData();
     } catch (error) {
-        console.error("Error staking tokens:", error);
-        showError("Error staking tokens: " + (error.message || error));
+        console.error("General staking error:", error);
+        showError("An unexpected error occurred");
+    } finally {
+        hideLoading('stakeBtn');
     }
 }
 
 // Claim Rewards
 async function claimRewards() {
+    const claimBtn = document.getElementById('claimTokenBtn') || document.getElementById('claimUsdtBtn');
     try {
-        await vnstStakingContract.methods.claimRewards().send({ from: currentAccount });
+        showLoading(claimBtn.id);
+        
+        const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
+        const minVNTWithdrawal = await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call();
+        
+        if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal) {
+            showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether')} VNT`);
+            hideLoading(claimBtn.id);
+            return;
+        }
+        
+        await vnstStakingContract.methods.claimRewards().send({ 
+            from: currentAccount,
+            gas: 250000
+        });
+        
         showSuccess("Rewards claimed successfully!");
         await loadData();
+        
     } catch (error) {
         console.error("Error claiming rewards:", error);
-        showError("Error claiming rewards: " + (error.message || error));
+        let errorMsg = "Claiming rewards failed";
+        if (error.message.includes("revert")) {
+            if (error.message.includes("Below minimum VNT withdrawal")) {
+                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(), 'ether')} VNT`;
+            } else if (error.message.includes("Can only claim once per day")) {
+                errorMsg = "You can only claim rewards once per day";
+            } else {
+                const revertReason = error.message.match(/reason string: '(.+)'/);
+                errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
+            }
+        } else if (error.message.includes("User denied transaction")) {
+            errorMsg = "Transaction cancelled by user";
+        }
+        showError(errorMsg);
+    } finally {
+        hideLoading(claimBtn.id);
     }
 }
 
@@ -511,6 +638,14 @@ function initEventListeners() {
     
     const menuToggle = document.querySelector('.menu-toggle');
     if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
+    
+    // URL से रिफरर एड्रेस ऑटो-फिल करें
+    const urlParams = new URLSearchParams(window.location.search);
+    const refAddress = urlParams.get('ref');
+    const referrerInput = document.getElementById('referrerAddress');
+    if (refAddress && web3.utils.isAddress(refAddress) && referrerInput && !referrerInput.value) {
+        referrerInput.value = refAddress;
+    }
 }
 
 // Initialize App
@@ -519,18 +654,13 @@ async function initApp() {
         setupCardAnimations();
         initEventListeners();
         
-        if (window.ethereum && window.ethereum.selectedAddress) {
-            currentAccount = window.ethereum.selectedAddress;
-            web3 = new Web3(window.ethereum);
-            await checkNetwork();
-            await initContracts();
-            updateWalletConnectionUI(currentAccount);
-            await loadData();
-        }
-        
         if (window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            
+            // अकाउंट चेंज इवेंट लिसनर
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
+                    // यूजर ने वॉलेट डिस्कनेक्ट किया
                     window.location.reload();
                 } else {
                     currentAccount = accounts[0];
@@ -539,9 +669,21 @@ async function initApp() {
                 }
             });
             
+            // नेटवर्क चेंज इवेंट लिसनर
             window.ethereum.on('chainChanged', () => {
                 window.location.reload();
             });
+            
+            // पेज लोड होने पर अगर वॉलेट कनेक्टेड है तो डेटा लोड करें
+            if (window.ethereum.selectedAddress) {
+                currentAccount = window.ethereum.selectedAddress;
+                await checkNetwork();
+                await initContracts();
+                updateWalletConnectionUI(currentAccount);
+                await loadData();
+            }
+        } else {
+            showError("Please install MetaMask or another Web3 wallet");
         }
     } catch (error) {
         console.error("Initialization error:", error);
