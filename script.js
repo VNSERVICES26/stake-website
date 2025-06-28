@@ -544,7 +544,7 @@ async function stakeTokens() {
 // Claim Rewards
 async function claimRewards() {
     const claimBtn = document.getElementById('claimTokenBtn') || document.getElementById('claimUsdtBtn');
-    try {
+    try 
         showLoading(claimBtn.id);
         
         const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
