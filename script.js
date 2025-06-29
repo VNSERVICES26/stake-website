@@ -570,7 +570,8 @@ async function claimRewards() {
         showLoading(claimBtn.id);
         
         const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
-        const minVNTWithdrawal = await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call();
+        const minVNTWithdrawal = await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call();    
+        }
         
         if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal)) {
             showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether'))} VNT`);
