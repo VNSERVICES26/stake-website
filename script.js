@@ -573,7 +573,7 @@ async function claimRewards() {
         const minVNTWithdrawal = await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(); 
         
         if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal)) {
-            showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether'))} VNT`);
+            showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether')} VNT`);
             hideLoading(claimBtn.id);
             return;
         }
@@ -591,7 +591,7 @@ async function claimRewards() {
         let errorMsg = "Claiming rewards failed";
         if (error.message.includes("revert")) {
             if (error.message.includes("Below minimum VNT withdrawal")) {
-                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(), 'ether'))} VNT`;
+                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(), 'ether')} VNT`;
             } else if (error.message.includes("Can only claim once per day")) {
                 errorMsg = "You can only claim rewards once per day";
             } else {
