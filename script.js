@@ -574,6 +574,80 @@ async function stakeTokens() {
     }
 }
 
+// Claim Rewards
+async function claimRewards() {
+    const claimBtn = document.getElementById('claimTokenBtn') || document.getElementById('claimUsdtBtn');
+    try {
+        showLoading(claimBtn.id);
+        
+        const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
+        const minVNTWithdrawal = await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(); 
+        
+        if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal)) {
+            showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether')} VNT`);
+            hideLoading(claimBtn.id);
+            return;
+        }
+        
+        await vnstStakingContract.methods.claimRewards().send({ 
+            from: currentAccount,
+            gas: 250000
+        });
+        
+        showSuccess("Rewards claimed successfully!");
+        await loadData();
+        
+    } catch (error) {
+        console.error("Error claiming rewards:", error);
+        let errorMsg = "Claiming rewards failed";
+        if (error.message.includes("revert")) {
+            if (error.message.includes("Below minimum VNT withdrawal")) {
+                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(), 'ether')} VNT`;
+            } else if (error.message.includes("Can only claim once per day")) {
+                errorMsg = "You can only claim rewards once per day";
+            } else {
+                const revertReason = error.message.match(/reason string: '(.+)'/);
+                errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
+            }
+        } else if (error.message.includes("User denied transaction")) {
+            errorMsg = "Transaction cancelled by user";
+        }
+        showError(errorMsg);
+    } finally {
+        hideLoading(claimBtn.id);
+    }
+}
+
+// Copy Referral Link
+function copyReferralLink() {
+    const referralLink = document.getElementById('referralLink');
+    if (referralLink) {
+        referralLink.select();
+        document.execCommand('copy');
+        showSuccess("Referral link copied to clipboard!");
+    }
+}
+
+// Share Referral Link
+function shareReferralLink() {
+    const referralLink = document.getElementById('referralLink');
+    if (referralLink) {
+        const link = referralLink.value;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'Join VNST Staking Platform',
+                text: 'Stake VNST tokens and earn rewards!',
+                url: link
+            }).catch(err => {
+                console.error('Error sharing:', err);
+            });
+        } else {
+            window.open(`https://twitter.com/intent/tweet?text=Join%20VNST%20Staking%20Platform%20and%20earn%20rewards!%20${encodeURIComponent(link)}`, '_blank');
+        }
+    }
+}
+
 // Create First Stake (Admin Only)
 async function createFirstStake() {
     try {
@@ -630,14 +704,56 @@ async function createFirstStake() {
     }
 }
 
-// [Rest of the functions remain exactly the same as in your original file]
-// [... all other functions unchanged ...]
+// Initialize Event Listeners
+function initEventListeners() {
+    // Wallet Connect Buttons
+    document.querySelectorAll('.wallet-connect-btn, #connectWalletBtn, #teamConnectWalletBtn').forEach(btn => {
+        if (btn) btn.addEventListener('click', connectWallet);
+    });
+    
+    // Stake Button
+    const stakeBtn = document.getElementById('stakeBtn');
+    if (stakeBtn) stakeBtn.addEventListener('click', stakeTokens);
+    
+    // Claim Buttons
+    const claimTokenBtn = document.getElementById('claimTokenBtn');
+    if (claimTokenBtn) claimTokenBtn.addEventListener('click', claimRewards);
+    
+    const claimUsdtBtn = document.getElementById('claimUsdtBtn');
+    if (claimUsdtBtn) claimUsdtBtn.addEventListener('click', claimRewards);
+    
+    // Referral Buttons
+    const copyReferralBtn = document.getElementById('copyReferralBtn');
+    if (copyReferralBtn) copyReferralBtn.addEventListener('click', copyReferralLink);
+    
+    const shareReferralBtn = document.getElementById('shareReferralBtn');
+    if (shareReferralBtn) shareReferralBtn.addEventListener('click', shareReferralLink);
+    
+    // Menu Toggle
+    const menuToggle = document.querySelector('.menu-toggle');
+    if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
+    
+    // Create First Stake Button
+    const createFirstStakeBtn = document.getElementById('createFirstStakeBtn');
+    if (createFirstStakeBtn) createFirstStakeBtn.addEventListener('click', createFirstStake);
+    
+    // URL से रिफरर एड्रेस ऑटो-फिल करें
+    const urlParams = new URLSearchParams(window.location.search);
+    const refAddress = urlParams.get('ref');
+    const referrerInput = document.getElementById('referrerAddress');
+    if (refAddress && web3.utils.isAddress(refAddress) && referrerInput && !referrerInput.value) {
+        referrerInput.value = refAddress;
+    }
+}
 
 // Initialize App
 async function initApp() {
     try {
-        setupCardAnimations();
+        // Initialize event listeners first
         initEventListeners();
+        
+        // Setup animations
+        setupCardAnimations();
         
         // Add loading indicator to HTML if not present
         if (!document.getElementById('loadingIndicator')) {
