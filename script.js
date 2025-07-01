@@ -36,15 +36,6 @@ const networkConfig = {
     }
 };
 
-// Staking Constants from Contract
-const STAKING_CONSTANTS = {
-    MIN_STAKE: 100 * 1e18, // 100 VNST
-    MAX_STAKE: 10000 * 1e18, // 10000 VNST
-    MIN_VNT_WITHDRAWAL: 10 * 1e18, // 10 VNT
-    WITHDRAWAL_FEE: 5, // 5%
-    ANTI_SYBIL_DURATION: 60 // 60 seconds
-};
-
 // Global Variables
 let web3;
 let vnstStakingContract;
@@ -464,7 +455,7 @@ async function loadTeamData() {
     }
 }
 
-// Stake Tokens - IMPROVED VERSION
+// Stake Tokens
 async function stakeTokens() {
     const stakeBtn = document.getElementById('stakeBtn');
     try {
@@ -492,8 +483,8 @@ async function stakeTokens() {
         const amountWei = web3.utils.toWei(amount, 'ether');
         
         // Use constants from contract
-        const minStake = STAKING_CONSTANTS.MIN_STAKE;
-        const maxStake = STAKING_CONSTANTS.MAX_STAKE;
+        const minStake = 100 * 1e18; // 100 VNST
+        const maxStake = 10000 * 1e18; // 10000 VNST
         
         if (amountWei < minStake || amountWei > maxStake) {
             showError(`Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`);
@@ -641,6 +632,65 @@ async function stakeTokens() {
     }
 }
 
+// Create First Stake (Admin Only) - UPDATED FIX
+async function createFirstStake() {
+    try {
+        showLoading('createFirstStakeBtn');
+        
+        if (!isAdmin) {
+            showError("Only contract owner can create first stake");
+            hideLoading('createFirstStakeBtn');
+            return;
+        }
+        
+        const stakeAmount = web3.utils.toWei("100", "ether");
+        
+        // Use owner's own address as referrer instead of zero address
+        const ownerAddress = await vnstStakingContract.methods.owner().call();
+        const referrer = ownerAddress;
+
+        // Check allowance first
+        const allowance = await vnstTokenContract.methods.allowance(
+            currentAccount,
+            networkConfig[currentNetwork].contractAddress
+        ).call();
+        
+        if (parseInt(allowance) < parseInt(stakeAmount)) {
+            await vnstTokenContract.methods.approve(
+                networkConfig[currentNetwork].contractAddress,
+                stakeAmount
+            ).send({ from: currentAccount });
+            
+            // Wait for approval confirmation
+            await new Promise(resolve => setTimeout(resolve, 10000));
+        }
+        
+        // Now stake with owner as referrer
+        await vnstStakingContract.methods.stake(
+            stakeAmount,
+            referrer  // Owner's own address as referrer
+        ).send({ 
+            from: currentAccount,
+            gas: 300000
+        });
+        
+        showSuccess("First stake created successfully!");
+        await loadData();
+    } catch (error) {
+        console.error("Error creating first stake:", error);
+        let errorMsg = "Error creating first stake";
+        if (error.message.includes("revert")) {
+            const revertReason = error.message.match(/reason string: '(.+)'/);
+            errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
+        } else if (error.message.includes("User denied transaction")) {
+            errorMsg = "Transaction cancelled by user";
+        }
+        showError(errorMsg);
+    } finally {
+        hideLoading('createFirstStakeBtn');
+    }
+}
+
 // Claim Rewards
 async function claimRewards() {
     const claimBtn = document.getElementById('claimTokenBtn') || document.getElementById('claimUsdtBtn');
@@ -648,7 +698,7 @@ async function claimRewards() {
         showLoading(claimBtn.id);
         
         const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
-        const minVNTWithdrawal = STAKING_CONSTANTS.MIN_VNT_WITHDRAWAL;
+        const minVNTWithdrawal = 10 * 1e18; // 10 VNT
         
         if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal)) {
             showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether')} VNT`);
@@ -669,7 +719,7 @@ async function claimRewards() {
         let errorMsg = "Claiming rewards failed";
         if (error.message.includes("revert")) {
             if (error.message.includes("Below minimum VNT withdrawal")) {
-                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(STAKING_CONSTANTS.MIN_VNT_WITHDRAWAL, 'ether')} VNT`;
+                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(10 * 1e18, 'ether')} VNT`;
             } else if (error.message.includes("Can only claim once per day")) {
                 errorMsg = "You can only claim rewards once per day";
             } else {
@@ -715,62 +765,6 @@ function shareReferralLink() {
     }
 }
 
-// Create First Stake (Admin Only)
-async function createFirstStake() {
-    try {
-        showLoading('createFirstStakeBtn');
-        
-        if (!isAdmin) {
-            showError("Only contract owner can create first stake");
-            hideLoading('createFirstStakeBtn');
-            return;
-        }
-        
-        const stakeAmount = web3.utils.toWei("100", "ether"); 
-        const zeroAddress = "0x0000000000000000000000000000000000000000";
-        
-        // Check allowance first
-        const allowance = await vnstTokenContract.methods.allowance(
-            currentAccount,
-            networkConfig[currentNetwork].contractAddress
-        ).call();
-        
-        if (parseInt(allowance) < parseInt(stakeAmount)) {
-            await vnstTokenContract.methods.approve(
-                networkConfig[currentNetwork].contractAddress,
-                stakeAmount
-            ).send({ from: currentAccount });
-            
-            // Wait for approval confirmation
-            await new Promise(resolve => setTimeout(resolve, 10000));
-        }
-        
-        // Now stake (in special mode where referrer validation won't happen)
-        await vnstStakingContract.methods.stake(
-            stakeAmount,
-            zeroAddress
-        ).send({ 
-            from: currentAccount,
-            gas: 300000
-        });
-        
-        showSuccess("First stake created successfully!");
-        await loadData();
-    } catch (error) {
-        console.error("Error creating first stake:", error);
-        let errorMsg = "Error creating first stake";
-        if (error.message.includes("revert")) {
-            const revertReason = error.message.match(/reason string: '(.+)'/);
-            errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
-        } else if (error.message.includes("User denied transaction")) {
-            errorMsg = "Transaction cancelled by user";
-        }
-        showError(errorMsg);
-    } finally {
-        hideLoading('createFirstStakeBtn');
-    }
-}
-
 // Initialize Event Listeners
 function initEventListeners() {
     // Wallet Connect Buttons
@@ -807,7 +801,7 @@ function initEventListeners() {
     // Auto-fill referrer address from URL
     const urlParams = new URLSearchParams(window.location.search);
     const refAddress = urlParams.get('ref');
-    const referrerInput = document.getElementById('referrerAddress');
+    const referrerInput = document.getElementById('referralLink');
     if (refAddress && web3.utils.isAddress(refAddress) && referrerInput && !referrerInput.value) {
         referrerInput.value = refAddress;
     }
@@ -836,7 +830,7 @@ async function initApp() {
         if (window.ethereum) {
             web3 = new Web3(window.ethereum);
             
-            // Handle disconnect event
+            // Handle disconnect event (updated from 'close')
             window.ethereum.on('disconnect', () => {
                 window.location.reload();
             });
