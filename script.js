@@ -36,6 +36,15 @@ const networkConfig = {
     }
 };
 
+// Staking Constants from Contract
+const STAKING_CONSTANTS = {
+    MIN_STAKE: 100 * 1e18, // 100 VNST
+    MAX_STAKE: 10000 * 1e18, // 10000 VNST
+    MIN_VNT_WITHDRAWAL: 10 * 1e18, // 10 VNT
+    WITHDRAWAL_FEE: 5, // 5%
+    ANTI_SYBIL_DURATION: 60 // 60 seconds
+};
+
 // Global Variables
 let web3;
 let vnstStakingContract;
@@ -482,28 +491,17 @@ async function stakeTokens() {
         const amountNum = parseFloat(amount);
         const amountWei = web3.utils.toWei(amount, 'ether');
         
-        // Get contract requirements
-        let minStake, maxStake;
-        try {
-            minStake = await vnstStakingContract.methods.MIN_STAKE_AMOUNT().call();
-            maxStake = await vnstStakingContract.methods.MAX_STAKE_AMOUNT().call();
-            
-            if (amountWei < minStake || amountWei > maxStake) {
-                showError(`Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`);
-                hideLoading('stakeBtn');
-                return;
-            }
-        } catch (error) {
-            console.error("Error getting stake limits:", error);
-            // Fallback to default values if contract call fails
-            if (amountNum < 100 || amountNum > 10000) {
-                showError("Amount must be between 100-10000 VNST");
-                hideLoading('stakeBtn');
-                return;
-            }
+        // Use constants from contract
+        const minStake = STAKING_CONSTANTS.MIN_STAKE;
+        const maxStake = STAKING_CONSTANTS.MAX_STAKE;
+        
+        if (amountWei < minStake || amountWei > maxStake) {
+            showError(`Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`);
+            hideLoading('stakeBtn');
+            return;
         }
         
-        // Set default referrer if none provided
+        // Referrer validation
         if (!referrer || !web3.utils.isAddress(referrer)) {
             try {
                 const contractOwner = await vnstStakingContract.methods.owner().call();
@@ -545,7 +543,7 @@ async function stakeTokens() {
         if (parseInt(allowance) < parseInt(amountWei)) {
             showSuccess("Approving tokens...");
             try {
-                const approveTx = await vnstTokenContract.methods.approve(
+                await vnstTokenContract.methods.approve(
                     networkConfig[currentNetwork].contractAddress,
                     amountWei
                 ).send({ 
@@ -553,16 +551,12 @@ async function stakeTokens() {
                     gas: 200000
                 });
                 
-                // Wait for transaction to be mined
-                const receipt = await web3.eth.getTransactionReceipt(approveTx.transactionHash);
-                if (!receipt.status) {
-                    throw new Error("Approval transaction failed");
-                }
-                
+                // Wait for 10 seconds after approval
+                await new Promise(resolve => setTimeout(resolve, 10000));
                 showSuccess("Approval confirmed. Now staking...");
             } catch (approveError) {
                 console.error("Approval error:", approveError);
-                showError("Token approval failed: " + (approveError.message || "Check console for details"));
+                showError("Token approval failed");
                 hideLoading('stakeBtn');
                 return;
             }
@@ -577,25 +571,37 @@ async function stakeTokens() {
             ).estimateGas({ from: currentAccount });
         } catch (estimateError) {
             console.error("Gas estimation failed:", estimateError);
-            showError("Transaction will fail: " + (estimateError.message || "Check requirements"));
+            let errorMsg = "Transaction will fail";
+            
+            if (estimateError.message.includes("Referrer cannot be zero address")) {
+                errorMsg = "Please enter a valid referrer address";
+            } else if (estimateError.message.includes("Invalid stake amount")) {
+                errorMsg = `Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`;
+            } else if (estimateError.message.includes("User is blacklisted")) {
+                errorMsg = "Your account is restricted from staking";
+            } else if (estimateError.message.includes("Cannot refer yourself")) {
+                errorMsg = "You cannot refer yourself";
+            }
+            
+            showError(errorMsg);
             hideLoading('stakeBtn');
             return;
         }
         
-        // Execute stake transaction with 20% gas buffer
+        // Execute stake transaction with 50% gas buffer
         try {
             const stakeTx = await vnstStakingContract.methods.stake(
                 amountWei,
                 referrer
             ).send({ 
                 from: currentAccount,
-                gas: Math.floor(gasEstimate * 1.2)  // Add 20% buffer
+                gas: Math.floor(gasEstimate * 1.5)  // 50% buffer
             });
             
             // Verify transaction success
             const receipt = await web3.eth.getTransactionReceipt(stakeTx.transactionHash);
             if (!receipt.status) {
-                throw new Error("Staking transaction failed");
+                throw new Error("Transaction failed");
             }
             
             showSuccess("Tokens staked successfully!");
@@ -604,20 +610,23 @@ async function stakeTokens() {
             
         } catch (stakeError) {
             console.error("Staking error:", stakeError);
-            
-            // Try to extract revert reason
             let errorMsg = "Staking failed";
-            if (stakeError.receipt && stakeError.receipt.logs && stakeError.receipt.logs.length === 0) {
-                // This usually means a revert without reason string
-                errorMsg = "Transaction reverted (check requirements)";
-            } else if (stakeError.message) {
-                if (stakeError.message.includes("revert")) {
-                    const revertReason = stakeError.message.match(/reason string: '(.+)'/);
-                    errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
+            
+            if (stakeError.message) {
+                if (stakeError.message.includes("Referrer cannot be zero address")) {
+                    errorMsg = "Please enter a valid referrer address";
+                } else if (stakeError.message.includes("Invalid stake amount")) {
+                    errorMsg = `Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`;
+                } else if (stakeError.message.includes("User is blacklisted")) {
+                    errorMsg = "Your account is restricted from staking";
+                } else if (stakeError.message.includes("Cannot refer yourself")) {
+                    errorMsg = "You cannot refer yourself";
+                } else if (stakeError.message.includes("Cannot refer recently created wallets")) {
+                    errorMsg = "Referrer wallet is too new";
                 } else if (stakeError.message.includes("User denied transaction")) {
                     errorMsg = "Transaction cancelled by user";
-                } else if (stakeError.message.includes("gas")) {
-                    errorMsg = "Transaction failed. Try increasing gas limit.";
+                } else if (stakeError.message.includes("execution reverted")) {
+                    errorMsg = "Transaction failed: " + stakeError.message.split("execution reverted: ")[1];
                 }
             }
             
@@ -626,7 +635,7 @@ async function stakeTokens() {
         
     } catch (error) {
         console.error("General staking error:", error);
-        showError("An unexpected error occurred: " + (error.message || "Check console for details"));
+        showError("An unexpected error occurred");
     } finally {
         hideLoading('stakeBtn');
     }
@@ -639,7 +648,7 @@ async function claimRewards() {
         showLoading(claimBtn.id);
         
         const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
-        const minVNTWithdrawal = await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(); 
+        const minVNTWithdrawal = STAKING_CONSTANTS.MIN_VNT_WITHDRAWAL;
         
         if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal)) {
             showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether')} VNT`);
@@ -660,7 +669,7 @@ async function claimRewards() {
         let errorMsg = "Claiming rewards failed";
         if (error.message.includes("revert")) {
             if (error.message.includes("Below minimum VNT withdrawal")) {
-                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(await vnstStakingContract.methods.MIN_VNT_WITHDRAWAL().call(), 'ether')} VNT`;
+                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(STAKING_CONSTANTS.MIN_VNT_WITHDRAWAL, 'ether')} VNT`;
             } else if (error.message.includes("Can only claim once per day")) {
                 errorMsg = "You can only claim rewards once per day";
             } else {
@@ -827,7 +836,7 @@ async function initApp() {
         if (window.ethereum) {
             web3 = new Web3(window.ethereum);
             
-            // Handle both old 'close' and new 'disconnect' events
+            // Handle disconnect event
             window.ethereum.on('disconnect', () => {
                 window.location.reload();
             });
