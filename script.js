@@ -139,55 +139,78 @@ async function initContracts() {
     try {
         const config = networkConfig[currentNetwork];
         
-        if (!config.contractAddress || !config.vnstTokenAddress || 
-            !config.vntTokenAddress || !config.usdtTokenAddress) {
-            throw new Error("Contract addresses not configured for this network");
-        }
+        vnstStakingContract = new web3.eth.Contract(vnstStakingABI, config.contractAddress);
+        vnstTokenContract = new web3.eth.Contract(erc20ABI, config.vnstTokenAddress);
+        vntTokenContract = new web3.eth.Contract(erc20ABI, config.vntTokenAddress);
+        usdtTokenContract = new web3.eth.Contract(erc20ABI, config.usdtTokenAddress);
         
-        vnstStakingContract = new web3.eth.Contract(
-            vnstStakingABI,
-            config.contractAddress
-        );
-        
-        vnstTokenContract = new web3.eth.Contract(
-            erc20ABI,
-            config.vnstTokenAddress
-        );
-        
-        vntTokenContract = new web3.eth.Contract(
-            erc20ABI,
-            config.vntTokenAddress
-        );
-        
-        usdtTokenContract = new web3.eth.Contract(
-            erc20ABI,
-            config.usdtTokenAddress
-        );
-        
-        if (!vnstStakingContract || !vnstTokenContract || !vntTokenContract || !usdtTokenContract) {
-            throw new Error("Failed to initialize contracts");
-        }
-        
-        // Check if current account is admin
         if (currentAccount) {
             const owner = await vnstStakingContract.methods.owner().call();
             isAdmin = currentAccount.toLowerCase() === owner.toLowerCase();
             
-            // Show admin panel if user is admin
             const adminPanel = document.getElementById('adminPanel');
-            if (adminPanel) {
-                adminPanel.style.display = isAdmin ? 'block' : 'none';
-            }
+            if (adminPanel) adminPanel.style.display = isAdmin ? 'block' : 'none';
             
             const createFirstStakeBtn = document.getElementById('createFirstStakeBtn');
-            if (createFirstStakeBtn) {
-                createFirstStakeBtn.style.display = isAdmin ? 'block' : 'none';
+            if (createFirstStakeBtn) createFirstStakeBtn.style.display = isAdmin ? 'block' : 'none';
+            
+            // Automatically create first stake for owner if not already staked
+            if (isAdmin) {
+                const ownerStake = await vnstStakingContract.methods.stakes(currentAccount).call();
+                if (!ownerStake.active) {
+                    await setupOwnerStake();
+                }
             }
         }
         
     } catch (error) {
         console.error("Error initializing contracts:", error);
         throw error;
+    }
+}
+
+// Special function to setup owner's stake
+async function setupOwnerStake() {
+    try {
+        if (!isAdmin) return;
+        
+        const stakeAmount = web3.utils.toWei("100", "ether");
+        const allowance = await vnstTokenContract.methods.allowance(
+            currentAccount,
+            networkConfig[currentNetwork].contractAddress
+        ).call();
+        
+        if (parseInt(allowance) < parseInt(stakeAmount)) {
+            await vnstTokenContract.methods.approve(
+                networkConfig[currentNetwork].contractAddress,
+                stakeAmount
+            ).send({ from: currentAccount });
+            
+            await new Promise(resolve => setTimeout(resolve, 30000));
+        }
+        
+        // Special case for owner - use zero address as referrer
+        await vnstStakingContract.methods.createFirstStake(stakeAmount).send({ 
+            from: currentAccount,
+            gas: 300000
+        });
+        
+        console.log("Owner's first stake created successfully");
+        
+    } catch (error) {
+        console.error("Error setting up owner stake:", error);
+        // If createFirstStake fails, try with normal stake using owner as referrer
+        try {
+            const stakeAmount = web3.utils.toWei("100", "ether");
+            await vnstStakingContract.methods.stake(
+                stakeAmount,
+                currentAccount // Owner refers themselves
+            ).send({ from: currentAccount, gas: 300000 });
+            
+            console.log("Owner staked successfully with self-referral");
+        } catch (fallbackError) {
+            console.error("Fallback staking also failed:", fallbackError);
+        }
     }
 }
 
@@ -454,7 +477,7 @@ async function loadTeamData() {
     }
 }
 
-// Stake Tokens
+// Stake Tokens (Updated with better referral handling)
 async function stakeTokens() {
     const stakeBtn = document.getElementById('stakeBtn');
     try {
@@ -463,14 +486,6 @@ async function stakeTokens() {
         const amount = document.getElementById('stakeAmount').value;
         let referrer = document.getElementById('referrerAddress').value;
         
-        // Check URL for referrer
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlRef = urlParams.get('ref');
-        if (!referrer && urlRef && web3.utils.isAddress(urlRef)) {
-            referrer = urlRef;
-            document.getElementById('referrerAddress').value = referrer;
-        }
-        
         // Validate amount
         if (!amount || isNaN(amount)) {
             showError("Please enter a valid amount");
@@ -478,12 +493,9 @@ async function stakeTokens() {
             return;
         }
         
-        const amountNum = parseFloat(amount);
         const amountWei = web3.utils.toWei(amount, 'ether');
-        
-        // Use constants from contract
-        const minStake = 100 * 1e18; // 100 VNST
-        const maxStake = 10000 * 1e18; // 10000 VNST
+        const minStake = 100 * 1e18;
+        const maxStake = 10000 * 1e18;
         
         if (amountWei < minStake || amountWei > maxStake) {
             showError(`Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`);
@@ -491,40 +503,25 @@ async function stakeTokens() {
             return;
         }
         
-        // Referrer validation
-        if (!referrer || !web3.utils.isAddress(referrer)) {
-            try {
-                const contractOwner = await vnstStakingContract.methods.owner().call();
-                if (contractOwner && contractOwner !== '0x0000000000000000000000000000000000000000') {
-                    referrer = contractOwner;
-                    document.getElementById('referrerAddress').value = referrer;
-                } else {
-                    showError("Please enter a valid referrer wallet address");
-                    hideLoading('stakeBtn');
-                    return;
-                }
-            } catch (error) {
-                console.error("Error getting contract owner:", error);
-                showError("Please enter a valid referrer wallet address");
-                hideLoading('stakeBtn');
-                return;
-            }
+        // Handle referrer logic
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRef = urlParams.get('ref');
+        
+        if (!referrer && urlRef && web3.utils.isAddress(urlRef)) {
+            referrer = urlRef;
+        } else if (!referrer) {
+            // Default to contract owner if no referrer provided
+            referrer = await vnstStakingContract.methods.owner().call();
         }
         
-        // Check if contract is paused
-        try {
-            const isPaused = await vnstStakingContract.methods.paused().call();
-            if (isPaused) {
-                showError("Staking is currently paused by the contract owner");
-                hideLoading('stakeBtn');
-                return;
-            }
-        } catch (error) {
-            console.error("Error checking paused status:", error);
-            // Continue even if we can't check paused status
+        // Special case: If user is owner, allow self-referral
+        if (currentAccount.toLowerCase() === referrer.toLowerCase() && !isAdmin) {
+            showError("You cannot refer yourself");
+            hideLoading('stakeBtn');
+            return;
         }
         
-        // Check allowance
+        // Check allowance and approve if needed
         const allowance = await vnstTokenContract.methods.allowance(
             currentAccount,
             networkConfig[currentNetwork].contractAddress
@@ -536,77 +533,29 @@ async function stakeTokens() {
                 await vnstTokenContract.methods.approve(
                     networkConfig[currentNetwork].contractAddress,
                     amountWei
-                ).send({ 
-                    from: currentAccount,
-                    gas: 200000
-                });
+                ).send({ from: currentAccount, gas: 200000 });
                 
-                // Wait for 3 block confirmations (about 15-30 seconds)
                 await new Promise(resolve => setTimeout(resolve, 30000));
                 showSuccess("Approval confirmed. Now staking...");
             } catch (approveError) {
                 console.error("Approval error:", approveError);
-                let errorMsg = "Token approval failed";
-                
-                // Improved error message handling
-                if (approveError.message.includes("User denied transaction")) {
-                    errorMsg = "Approval cancelled by user";
-                } else if (approveError.message.includes("execution reverted")) {
-                    const revertReason = approveError.message.split("execution reverted: ")[1] || "Unknown reason";
-                    errorMsg = `Approval failed: ${revertReason}`;
-                }
-                
-                showError(errorMsg);
+                showError(approveError.message.includes("User denied transaction") 
+                    ? "Approval cancelled by user" 
+                    : "Token approval failed");
                 hideLoading('stakeBtn');
                 return;
             }
         }
         
-        // Estimate gas for stake transaction
-        let gasEstimate;
-        try {
-            gasEstimate = await vnstStakingContract.methods.stake(
-                amountWei,
-                referrer
-            ).estimateGas({ from: currentAccount });
-        } catch (estimateError) {
-            console.error("Gas estimation failed:", estimateError);
-            let errorMsg = "Transaction will fail";
-            
-            // Improved error message parsing
-            if (estimateError.message.includes("Referrer cannot be zero address")) {
-                errorMsg = "Please enter a valid referrer address";
-            } else if (estimateError.message.includes("Invalid stake amount")) {
-                errorMsg = `Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`;
-            } else if (estimateError.message.includes("User is blacklisted")) {
-                errorMsg = "Your account is restricted from staking";
-            } else if (estimateError.message.includes("Cannot refer yourself")) {
-                errorMsg = "You cannot refer yourself";
-            } else if (estimateError.message.includes("execution reverted")) {
-                const revertReason = estimateError.message.split("execution reverted: ")[1] || "Unknown reason";
-                errorMsg = `Transaction will fail: ${revertReason}`;
-            }
-            
-            showError(errorMsg);
-            hideLoading('stakeBtn');
-            return;
-        }
-        
-        // Execute stake transaction with 20% gas buffer (reduced from 50%)
+        // Execute stake transaction
         try {
             const stakeTx = await vnstStakingContract.methods.stake(
                 amountWei,
                 referrer
             ).send({ 
                 from: currentAccount,
-                gas: Math.floor(gasEstimate * 1.2)  // 20% buffer (reduced from 50%)
+                gas: 300000
             });
-            
-            // Verify transaction success
-            const receipt = await web3.eth.getTransactionReceipt(stakeTx.transactionHash);
-            if (!receipt.status) {
-                throw new Error("Transaction failed");
-            }
             
             showSuccess("Tokens staked successfully!");
             document.getElementById('stakeAmount').value = '';
@@ -616,24 +565,15 @@ async function stakeTokens() {
             console.error("Staking error:", stakeError);
             let errorMsg = "Staking failed";
             
-            // Improved error message handling
-            if (stakeError.message) {
-                if (stakeError.message.includes("Referrer cannot be zero address")) {
-                    errorMsg = "Please enter a valid referrer address";
-                } else if (stakeError.message.includes("Invalid stake amount")) {
-                    errorMsg = `Amount must be between ${web3.utils.fromWei(minStake, 'ether')}-${web3.utils.fromWei(maxStake, 'ether')} VNST`;
-                } else if (stakeError.message.includes("User is blacklisted")) {
-                    errorMsg = "Your account is restricted from staking";
-                } else if (stakeError.message.includes("Cannot refer yourself")) {
-                    errorMsg = "You cannot refer yourself";
-                } else if (stakeError.message.includes("Cannot refer recently created wallets")) {
-                    errorMsg = "Referrer wallet is too new";
-                } else if (stakeError.message.includes("User denied transaction")) {
-                    errorMsg = "Transaction cancelled by user";
-                } else if (stakeError.message.includes("execution reverted")) {
-                    const revertReason = stakeError.message.split("execution reverted: ")[1] || "Unknown reason";
-                    errorMsg = `Transaction failed: ${revertReason}`;
-                }
+            if (stakeError.message.includes("Referrer cannot be zero address")) {
+                errorMsg = "Please enter a valid referrer address";
+            } else if (stakeError.message.includes("Cannot refer yourself")) {
+                errorMsg = "You cannot refer yourself";
+            } else if (stakeError.message.includes("User denied transaction")) {
+                errorMsg = "Transaction cancelled by user";
+            } else if (stakeError.message.includes("execution reverted")) {
+                const revertReason = stakeError.message.split("execution reverted: ")[1] || "Unknown reason";
+                errorMsg = `Transaction failed: ${revertReason}`;
             }
             
             showError(errorMsg);
@@ -647,7 +587,7 @@ async function stakeTokens() {
     }
 }
 
-// Create First Stake (Admin Only)
+// Create First Stake (Admin Only - Updated)
 async function createFirstStake() {
     try {
         showLoading('createFirstStakeBtn');
@@ -660,10 +600,6 @@ async function createFirstStake() {
         
         const stakeAmount = web3.utils.toWei("100", "ether");
         
-        // Use owner's own address as referrer
-        const ownerAddress = await vnstStakingContract.methods.owner().call();
-        const referrer = ownerAddress;
-
         // Check allowance first
         const allowance = await vnstTokenContract.methods.allowance(
             currentAccount,
@@ -676,15 +612,11 @@ async function createFirstStake() {
                 stakeAmount
             ).send({ from: currentAccount });
             
-            // Wait for 3 block confirmations (about 15-30 seconds)
             await new Promise(resolve => setTimeout(resolve, 30000));
         }
         
-        // Now stake with owner as referrer
-        await vnstStakingContract.methods.stake(
-            stakeAmount,
-            referrer
-        ).send({ 
+        // Use the special createFirstStake function that allows zero address referrer
+        await vnstStakingContract.methods.createFirstStake(stakeAmount).send({ 
             from: currentAccount,
             gas: 300000
         });
@@ -695,15 +627,11 @@ async function createFirstStake() {
         console.error("Error creating first stake:", error);
         let errorMsg = "Error creating first stake";
         
-        // Improved error message handling
         if (error.message.includes("revert")) {
             const revertReason = error.message.match(/reason string: '(.+)'/);
             errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
         } else if (error.message.includes("User denied transaction")) {
             errorMsg = "Transaction cancelled by user";
-        } else if (error.message.includes("execution reverted")) {
-            const revertReason = error.message.split("execution reverted: ")[1] || "Unknown reason";
-            errorMsg = `Transaction failed: ${revertReason}`;
         }
         
         showError(errorMsg);
@@ -739,7 +667,6 @@ async function claimRewards() {
         console.error("Error claiming rewards:", error);
         let errorMsg = "Claiming rewards failed";
         
-        // Improved error message handling
         if (error.message.includes("revert")) {
             if (error.message.includes("Below minimum VNT withdrawal")) {
                 errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(10 * 1e18, 'ether')} VNT`;
@@ -843,7 +770,7 @@ async function initApp() {
         // Setup animations
         setupCardAnimations();
         
-        // Add loading indicator to HTML if not present
+        // Add loading indicator
         if (!document.getElementById('loadingIndicator')) {
             const loadingDiv = document.createElement('div');
             loadingDiv.id = 'loadingIndicator';
@@ -857,24 +784,17 @@ async function initApp() {
         if (window.ethereum) {
             web3 = new Web3(window.ethereum);
             
-            // Handle disconnect event
-            window.ethereum.on('disconnect', () => {
-                window.location.reload();
-            });
-            
+            // Handle events
+            window.ethereum.on('disconnect', () => window.location.reload());
             window.ethereum.on('accountsChanged', async (accounts) => {
-                if (accounts.length === 0) {
-                    window.location.reload();
-                } else {
+                if (accounts.length === 0) window.location.reload();
+                else {
                     currentAccount = accounts[0];
                     updateWalletConnectionUI(currentAccount);
                     await loadData();
                 }
             });
-            
-            window.ethereum.on('chainChanged', () => {
-                window.location.reload();
-            });
+            window.ethereum.on('chainChanged', () => window.location.reload());
             
             if (window.ethereum.selectedAddress) {
                 currentAccount = window.ethereum.selectedAddress;
