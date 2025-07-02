@@ -13,7 +13,7 @@ const networkConfig = {
         },
         rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
         blockExplorerUrls: ['https://testnet.bscscan.com'],
-        contractAddress: '0xd06Bc0321dF9df3d95fC68B81Df00DBd22fc333c',
+        contractAddress: '0x4DaB178a4cDad54CFAB18AE1F5acf96D094Df411',
         vnstTokenAddress: '0x5C6cB004b50278c6726c3cBEDd25165c2072C46D',
         vntTokenAddress: '0xa7e41CB0A41dbFC801408d3B577fCed150c4eeEc',
         usdtTokenAddress: '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd'
