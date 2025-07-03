@@ -427,7 +427,6 @@ async function stakeTokens() {
     try {
         showLoading('stakeBtn');
         
-        // Get input values
         const amount = document.getElementById('stakeAmount').value;
         let referrer = document.getElementById('referrerAddress').value;
         
@@ -464,24 +463,14 @@ async function stakeTokens() {
             return;
         }
         
-        // Check contract state
-        const isPaused = await vnstStakingContract.methods.paused().call();
-        if (isPaused) {
-            showError("Staking is currently paused");
-            hideLoading('stakeBtn');
-            return;
-        }
+        // Get the actual token address from the staking contract
+        const stakingTokenAddress = await vnstStakingContract.methods.vnstToken().call();
         
-        // Check blacklist status
-        const isBlacklisted = await vnstStakingContract.methods.blacklisted(currentAccount).call();
-        if (isBlacklisted) {
-            showError("Your account is blacklisted");
-            hideLoading('stakeBtn');
-            return;
-        }
+        // Initialize token contract with correct address
+        const correctTokenContract = new web3.eth.Contract(erc20ABI, stakingTokenAddress);
         
         // 1. Check current allowance
-        const currentAllowance = await vnstTokenContract.methods.allowance(
+        const currentAllowance = await correctTokenContract.methods.allowance(
             currentAccount,
             networkConfig[currentNetwork].contractAddress
         ).call();
@@ -492,7 +481,7 @@ async function stakeTokens() {
         if (parseInt(currentAllowance) > 0) {
             showSuccess("Resetting previous approval...");
             try {
-                const resetTx = await vnstTokenContract.methods.approve(
+                const resetTx = await correctTokenContract.methods.approve(
                     networkConfig[currentNetwork].contractAddress,
                     '0'
                 ).send({ from: currentAccount });
@@ -500,7 +489,7 @@ async function stakeTokens() {
                 console.log("Reset tx hash:", resetTx.transactionHash);
                 
                 // Wait for reset to be confirmed
-                const resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
+                let resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
                 while (!resetReceipt || !resetReceipt.blockNumber) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                     resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
@@ -515,7 +504,7 @@ async function stakeTokens() {
         // 3. Set new allowance
         showSuccess("Approving tokens...");
         try {
-            const approveTx = await vnstTokenContract.methods.approve(
+            const approveTx = await correctTokenContract.methods.approve(
                 networkConfig[currentNetwork].contractAddress,
                 amountWei
             ).send({ from: currentAccount });
@@ -531,7 +520,7 @@ async function stakeTokens() {
             console.log("Approval confirmed in block:", approveReceipt.blockNumber);
             
             // Verify the new allowance
-            const newAllowance = await vnstTokenContract.methods.allowance(
+            const newAllowance = await correctTokenContract.methods.allowance(
                 currentAccount,
                 networkConfig[currentNetwork].contractAddress
             ).call();
