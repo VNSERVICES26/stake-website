@@ -61,7 +61,8 @@ function showError(message) {
     errorElement.className = 'error-message';
     errorElement.textContent = message;
     
-    document.body.appendChild(errorElement);
+    const messageContainer = document.getElementById('messageContainer') || document.body;
+    messageContainer.appendChild(errorElement);
     
     setTimeout(() => {
         errorElement.remove();
@@ -73,7 +74,8 @@ function showSuccess(message) {
     successElement.className = 'success-message';
     successElement.textContent = message;
     
-    document.body.appendChild(successElement);
+    const messageContainer = document.getElementById('messageContainer') || document.body;
+    messageContainer.appendChild(successElement);
     
     setTimeout(() => {
         successElement.remove();
@@ -98,49 +100,45 @@ function hideLoading(elementId) {
     }
 }
 
-// Setup Card Animations
-function setupCardAnimations() {
-    const cards = document.querySelectorAll('.card');
-    if (cards.length > 0) {
-        const cardObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    cardObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1 });
-
-        cards.forEach(card => {
-            cardObserver.observe(card);
-        });
+// Helper function to wait for transaction receipt
+async function waitForTransactionReceipt(txHash) {
+    let receipt = null;
+    let attempts = 0;
+    const maxAttempts = 30; // ~1 minute timeout
+    
+    while (!receipt && attempts < maxAttempts) {
+        receipt = await web3.eth.getTransactionReceipt(txHash);
+        if (!receipt) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            attempts++;
+        }
     }
+    
+    if (!receipt) {
+        throw new Error("Transaction receipt not found after waiting");
+    }
+    
+    return receipt;
 }
 
-// Toggle Menu Function
-function toggleMenu() {
-    const navLinks = document.getElementById('nav-links');
-    if (navLinks) {
-        navLinks.classList.toggle('show');
-        
-        document.querySelectorAll('#nav-links a').forEach(link => {
-            link.addEventListener('click', () => {
-                navLinks.classList.remove('show');
-            });
-        });
-    }
-}
-
-// Initialize Contracts
+// Initialize Contracts with better error handling
 async function initContracts() {
     try {
         const config = networkConfig[currentNetwork];
         
-        // Initialize contracts with provided ABIs (user will paste them)
+        if (!vnstStakingABI || !erc20ABI) {
+            throw new Error("Contract ABIs not loaded");
+        }
+        
         vnstStakingContract = new web3.eth.Contract(vnstStakingABI, config.contractAddress);
         vnstTokenContract = new web3.eth.Contract(erc20ABI, config.vnstTokenAddress);
         vntTokenContract = new web3.eth.Contract(erc20ABI, config.vntTokenAddress);
         usdtTokenContract = new web3.eth.Contract(erc20ABI, config.usdtTokenAddress);
+        
+        // Verify contracts are properly initialized
+        if (!vnstStakingContract?.methods || !vnstTokenContract?.methods) {
+            throw new Error("Failed to initialize contract instances");
+        }
         
         if (currentAccount) {
             const owner = await vnstStakingContract.methods.owner().call();
@@ -153,288 +151,15 @@ async function initContracts() {
             if (createFirstStakeBtn) createFirstStakeBtn.style.display = isAdmin ? 'block' : 'none';
         }
         
+        return true;
     } catch (error) {
         console.error("Error initializing contracts:", error);
+        showError("Failed to initialize contracts. Please refresh the page.");
         throw error;
     }
 }
 
-// Check and Switch Network
-async function checkNetwork() {
-    try {
-        const chainId = await web3.eth.getChainId();
-        const expectedChainId = parseInt(networkConfig[currentNetwork].chainId, 16);
-        
-        if (chainId !== expectedChainId) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: networkConfig[currentNetwork].chainId }],
-                });
-                // After switching, reload data
-                await initContracts();
-                if (currentAccount) {
-                    await loadData();
-                }
-            } catch (switchError) {
-                if (switchError.code === 4902) {
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [networkConfig[currentNetwork]],
-                        });
-                    } catch (addError) {
-                        console.error("Error adding network:", addError);
-                        showError("Please add Binance Smart Chain network to your wallet");
-                        throw addError;
-                    }
-                } else {
-                    console.error("Error switching network:", switchError);
-                    showError("Please switch to Binance Smart Chain network");
-                    throw switchError;
-                }
-            }
-        }
-    } catch (error) {
-        console.error("Network error:", error);
-        showError("Network error: " + (error.message || error));
-        throw error;
-    }
-}
-
-// Connect Wallet Function
-async function connectWallet() {
-    try {
-        if (typeof window.ethereum !== 'undefined') {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            currentAccount = accounts[0];
-            
-            await checkNetwork();
-            
-            if (!vnstStakingContract) {
-                await initContracts();
-            }
-            
-            updateWalletConnectionUI(currentAccount);
-            await loadData();
-        } else {
-            showError("Please install MetaMask to connect your wallet");
-        }
-    } catch (error) {
-        console.error("Error connecting wallet:", error);
-        showError("Error connecting wallet: " + (error.message || error));
-    }
-}
-
-// Update Wallet Connection UI
-function updateWalletConnectionUI(address) {
-    if (!address) return;
-    
-    const walletButtons = document.querySelectorAll('.wallet-connect-btn');
-    const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-    
-    walletButtons.forEach(btn => {
-        if (btn) {
-            btn.textContent = shortAddress;
-            btn.classList.add('connected');
-        }
-    });
-    
-    const walletSections = document.querySelectorAll('#walletConnectSection, #teamWalletConnect');
-    walletSections.forEach(section => {
-        if (section) section.style.display = 'none';
-    });
-    
-    const dashboards = document.querySelectorAll('#stakingDashboard, #teamDashboard');
-    dashboards.forEach(dashboard => {
-        if (dashboard) dashboard.style.display = 'block';
-    });
-    
-    // Only show referral link if user has an active stake
-    const referralLinkInput = document.getElementById('referralLink');
-    if (referralLinkInput) {
-        referralLinkInput.value = '';
-        
-        // Check if user has an active stake
-        vnstStakingContract.methods.stakes(address).call()
-            .then(stakeInfo => {
-                if (stakeInfo.active) {
-                    referralLinkInput.value = `${window.location.origin}${window.location.pathname}?ref=${address}`;
-                }
-            })
-            .catch(error => {
-                console.error("Error checking stake status:", error);
-            });
-    }
-}
-
-// Load Data
-async function loadData() {
-    try {
-        if (!currentAccount) return;
-        
-        if (!vnstStakingContract || !vnstTokenContract) {
-            await initContracts();
-        }
-        
-        // Show loading state
-        document.querySelectorAll('.data-section').forEach(section => {
-            if (section) section.style.display = 'none';
-        });
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        if (loadingIndicator) loadingIndicator.style.display = 'block';
-        
-        if (document.getElementById('totalUsers')) {
-            await loadGlobalStats();
-        }
-        
-        if (document.getElementById('walletAddress')) {
-            await loadUserData();
-        }
-        
-        if (document.getElementById('teamDashboard')) {
-            await loadTeamData();
-        }
-        
-        // Hide loading and show data
-        if (loadingIndicator) loadingIndicator.style.display = 'none';
-        document.querySelectorAll('.data-section').forEach(section => {
-            if (section) section.style.display = 'block';
-        });
-        
-    } catch (error) {
-        console.error("Error loading data:", error);
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        if (loadingIndicator) loadingIndicator.style.display = 'none';
-        showError("Error loading data: " + (error.message || error));
-    }
-}
-
-// Load Global Stats
-async function loadGlobalStats() {
-    try {
-        const userStats = await vnstStakingContract.methods.getUserStats(currentAccount).call();
-        safeSetTextContent('totalStaked', `${formatNumber(web3.utils.fromWei(userStats.totalStaked, 'ether'))} VNST`);
-        safeSetTextContent('totalWithdrawn', `${formatNumber(web3.utils.fromWei(userStats.totalEarned, 'ether'))} VNST`);
-        safeSetTextContent('totalUsers', formatNumber(userStats.directMembers));
-        
-        const stakeInfo = await vnstStakingContract.methods.stakes(currentAccount).call();
-        safeSetTextContent('activeStaking', stakeInfo.active ? 
-            `${formatNumber(web3.utils.fromWei(stakeInfo.amount, 'ether'))} VNST` : '0 VNST');
-    } catch (error) {
-        console.error("Error loading global stats:", error);
-        safeSetTextContent('totalUsers', '0');
-        safeSetTextContent('totalStaked', '0 VNST');
-        safeSetTextContent('totalWithdrawn', '0 VNST');
-        safeSetTextContent('activeStaking', '0 VNST');
-    }
-}
-
-// Load User Data
-async function loadUserData() {
-    try {
-        if (!currentAccount) return;
-        
-        safeSetTextContent('walletAddress', `${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`);
-        
-        const vnstBalance = await vnstTokenContract.methods.balanceOf(currentAccount).call();
-        safeSetTextContent('walletBalance', `${formatNumber(web3.utils.fromWei(vnstBalance, 'ether'))} VNST`);
-        
-        const userStake = await vnstStakingContract.methods.stakes(currentAccount).call();
-        safeSetTextContent('userTotalStaked', `${formatNumber(web3.utils.fromWei(userStake.amount, 'ether'))} VNST`);
-        
-        const userRewards = await vnstStakingContract.methods.rewards(currentAccount).call();
-        safeSetTextContent('userTotalWithdrawn', `${formatNumber(web3.utils.fromWei(userRewards.claimedVNT, 'ether'))} VNT + ${formatNumber(web3.utils.fromWei(userRewards.claimedUSDT, 'ether'))} USDT`);
-        
-        safeSetTextContent('userActiveStaking', userStake.active ? 
-            `${formatNumber(web3.utils.fromWei(userStake.amount, 'ether'))} VNST` : '0 VNST');
-        
-        const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
-        safeSetTextContent('level1Income', `${formatNumber(web3.utils.fromWei(pendingRewards.vntReward, 'ether'))} VNT`);
-        safeSetTextContent('level2to5Income', `${formatNumber(web3.utils.fromWei(pendingRewards.usdtReward, 'ether'))} USDT`);
-        
-        const dailyROIPercent = await vnstStakingContract.methods.dailyROIPercent().call();
-        const vnstPrice = await vnstStakingContract.methods.vnstPrice().call();
-        
-        if (userStake.active) {
-            const stakedAmount = web3.utils.fromWei(userStake.amount, 'ether');
-            const roiAmount = (stakedAmount * dailyROIPercent) / 100;
-            const roiInUsdt = roiAmount * (web3.utils.fromWei(vnstPrice, 'ether'));
-            safeSetTextContent('dailyROI', `${formatNumber(roiInUsdt)} USDT`);
-        } else {
-            safeSetTextContent('dailyROI', '0 USDT');
-        }
-    } catch (error) {
-        console.error("Error loading user data:", error);
-        showError("Error loading user data. Please try refreshing the page.");
-    }
-}
-
-// Load Team Data
-async function loadTeamData() {
-    try {
-        if (!currentAccount) return;
-        
-        const userStats = await vnstStakingContract.methods.getUserStats(currentAccount).call();
-        safeSetTextContent('directMembers', userStats.directMembers);
-        
-        let totalTeamMembers = 0;
-        for (let level = 1; level <= 5; level++) {
-            const levelMembers = await vnstStakingContract.methods.getLevelReferralCount(currentAccount, level).call();
-            totalTeamMembers += parseInt(levelMembers);
-            safeSetTextContent(`level${level}Members`, levelMembers);
-        }
-        safeSetTextContent('totalTeamMembers', totalTeamMembers);
-        
-        safeSetTextContent('teamTotalStaked', `${formatNumber(web3.utils.fromWei(userStats.totalStaked, 'ether'))} VNST`);
-        
-        const userStake = await vnstStakingContract.methods.stakes(currentAccount).call();
-        safeSetTextContent('teamActiveStaking', userStake.active ? 
-            `${formatNumber(web3.utils.fromWei(userStake.amount, 'ether'))} VNST` : '0 VNST');
-        
-        const tableBody = document.querySelector('#teamMembersTable tbody');
-        if (tableBody) {
-            tableBody.innerHTML = '';
-            
-            const level1Referrals = await vnstStakingContract.methods.getLevelReferrals(currentAccount, 1).call();
-            
-            for (let i = 0; i < Math.min(3, level1Referrals.length); i++) {
-                const memberAddress = level1Referrals[i];
-                const memberStake = await vnstStakingContract.methods.stakes(memberAddress).call();
-                
-                const row = document.createElement('tr');
-                row.style.borderBottom = '1px solid var(--glass-border)';
-                row.innerHTML = `
-                    <td style="padding: 0.75rem;">1</td>
-                    <td style="padding: 0.75rem;">${memberAddress.substring(0, 6)}...${memberAddress.substring(memberAddress.length - 4)}</td>
-                    <td style="padding: 0.75rem;">${formatNumber(web3.utils.fromWei(memberStake.amount, 'ether'))} VNST</td>
-                    <td style="padding: 0.75rem;">${new Date(memberStake.startTime * 1000).toLocaleDateString()}</td>
-                `;
-                tableBody.appendChild(row);
-            }
-        }
-        
-        const requiredMembers = [2, 2, 2, 2, 2];
-        for (let level = 1; level <= 5; level++) {
-            const statusElement = document.getElementById(`level${level}Status`);
-            if (statusElement) {
-                const hasEnoughMembers = parseInt(userStats.directMembers) >= requiredMembers[level-1];
-                
-                if (hasEnoughMembers) {
-                    statusElement.textContent = 'Active';
-                    statusElement.className = 'status-active';
-                } else {
-                    statusElement.textContent = 'Locked';
-                    statusElement.className = 'status-locked';
-                }
-            }
-        }
-    } catch (error) {
-        console.error("Error loading team data:", error);
-        showError("Error loading team data. Please try again.");
-    }
-}
-
+// Updated stakeTokens function with proper allowance handling
 async function stakeTokens() {
     const stakeBtn = document.getElementById('stakeBtn');
     try {
@@ -470,14 +195,17 @@ async function stakeTokens() {
             referrer = await vnstStakingContract.methods.owner().call();
         }
         
-        // Allow owner to self-refer
-        if (isAdmin && referrer.toLowerCase() === currentAccount.toLowerCase()) {
-            // This is allowed for owner only
-        } else if (!web3.utils.isAddress(referrer)) {
+        // Special case for owner - allow self-referral
+        const ownerAddress = await vnstStakingContract.methods.owner().call();
+        const isOwner = currentAccount.toLowerCase() === ownerAddress.toLowerCase();
+        
+        if (!web3.utils.isAddress(referrer)) {
             showError("Invalid referrer address");
             hideLoading('stakeBtn');
             return;
-        } else if (referrer.toLowerCase() === currentAccount.toLowerCase()) {
+        }
+        
+        if (!isOwner && referrer.toLowerCase() === currentAccount.toLowerCase()) {
             showError("You cannot refer yourself");
             hideLoading('stakeBtn');
             return;
@@ -485,11 +213,9 @@ async function stakeTokens() {
         
         // Get the actual token address from the staking contract
         const stakingTokenAddress = await vnstStakingContract.methods.vnstToken().call();
-        
-        // Initialize token contract with correct address
         const correctTokenContract = new web3.eth.Contract(erc20ABI, stakingTokenAddress);
         
-        // 1. Check current allowance
+        // Check current allowance
         const currentAllowance = await correctTokenContract.methods.allowance(
             currentAccount,
             networkConfig[currentNetwork].contractAddress
@@ -497,231 +223,84 @@ async function stakeTokens() {
         
         console.log("Current allowance:", currentAllowance);
         
-        // 2. Reset allowance to zero if needed
-        if (parseInt(currentAllowance) > 0) {
-            showSuccess("Resetting previous approval...");
-            try {
-                const resetTx = await correctTokenContract.methods.approve(
-                    networkConfig[currentNetwork].contractAddress,
-                    '0'
-                ).send({ from: currentAccount });
-                
-                console.log("Reset tx hash:", resetTx.transactionHash);
-                
-                // Wait for reset to be confirmed
-                let resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
-                while (!resetReceipt || !resetReceipt.blockNumber) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
-                }
-                console.log("Reset confirmed in block:", resetReceipt.blockNumber);
-            } catch (resetError) {
-                console.error("Reset error:", resetError);
-                // Continue even if reset fails
-            }
-        }
+        const amountWeiBN = new web3.utils.BN(amountWei);
+        const currentAllowanceBN = new web3.utils.BN(currentAllowance);
         
-        // 3. Set new allowance
-        showSuccess("Approving tokens...");
-        try {
+        // Only reset if current allowance is less than required
+        if (currentAllowanceBN.lt(amountWeiBN)) {
+            // Reset to zero first
+            showSuccess("Resetting previous approval...");
+            const resetTx = await correctTokenContract.methods.approve(
+                networkConfig[currentNetwork].contractAddress,
+                '0'
+            ).send({ from: currentAccount });
+            
+            console.log("Reset tx hash:", resetTx.transactionHash);
+            await waitForTransactionReceipt(resetTx.transactionHash);
+            
+            // Now set new allowance
+            showSuccess("Setting new allowance...");
             const approveTx = await correctTokenContract.methods.approve(
                 networkConfig[currentNetwork].contractAddress,
                 amountWei
             ).send({ from: currentAccount });
             
             console.log("Approve tx hash:", approveTx.transactionHash);
+            await waitForTransactionReceipt(approveTx.transactionHash);
             
-            // Wait for approval to be confirmed
-            let approveReceipt = await web3.eth.getTransactionReceipt(approveTx.transactionHash);
-            while (!approveReceipt || !approveReceipt.blockNumber) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                approveReceipt = await web3.eth.getTransactionReceipt(approveTx.transactionHash);
-            }
-            console.log("Approval confirmed in block:", approveReceipt.blockNumber);
-            
-            // Verify the new allowance
+            // Verify new allowance
             const newAllowance = await correctTokenContract.methods.allowance(
                 currentAccount,
                 networkConfig[currentNetwork].contractAddress
             ).call();
             
             console.log("New allowance:", newAllowance);
+            const newAllowanceBN = new web3.utils.BN(newAllowance);
             
-            if (BigInt(newAllowance) < BigInt(amountWei)) {
+            if (newAllowanceBN.lt(amountWeiBN)) {
                 throw new Error(`Approval failed. Current allowance: ${newAllowance}, Required: ${amountWei}`);
             }
-            
-            showSuccess("Approval confirmed. Now staking...");
-        } catch (approveError) {
-            console.error("Approval failed:", approveError);
-            showError("Token approval failed. Please try again.");
-            hideLoading('stakeBtn');
-            return;
         }
         
-        // 4. Execute stake with proper gas handling
-        try {
-            // Estimate gas first
-            const gasEstimate = await vnstStakingContract.methods.stake(
-                amountWei,
-                referrer
-            ).estimateGas({ from: currentAccount });
-            
-            console.log("Gas estimate:", gasEstimate);
-            
-            // Add 30% buffer
-            const gasWithBuffer = Math.floor(gasEstimate * 1.3);
-            
-            const stakeTx = await vnstStakingContract.methods.stake(
-                amountWei,
-                referrer
-            ).send({ 
-                from: currentAccount,
-                gas: gasWithBuffer
-            });
-            
-            console.log("Stake tx hash:", stakeTx.transactionHash);
-            
-            // Wait for stake to be confirmed
-            let stakeReceipt = await web3.eth.getTransactionReceipt(stakeTx.transactionHash);
-            while (!stakeReceipt || !stakeReceipt.blockNumber) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                stakeReceipt = await web3.eth.getTransactionReceipt(stakeTx.transactionHash);
-            }
-            console.log("Stake confirmed in block:", stakeReceipt.blockNumber);
-            
-            showSuccess("Tokens staked successfully!");
-            document.getElementById('stakeAmount').value = '';
-            
-            // Update referral link after successful stake
-            updateWalletConnectionUI(currentAccount);
-            
-            await loadData();
-            
-        } catch (stakeError) {
-            console.error("Staking failed:", stakeError);
-            
-            // Try to decode revert reason
-            let errorMsg = "Staking failed";
-            if (stakeError.data) {
-                try {
-                    const decoded = web3.eth.abi.decodeParameter('string', stakeError.data.slice(10));
-                    errorMsg = decoded;
-                } catch (decodeError) {
-                    console.error("Couldn't decode error:", decodeError);
-                }
-            } else if (stakeError.message.includes("execution reverted")) {
-                errorMsg = stakeError.message.split("execution reverted: ")[1] || "Unknown reason";
-            }
-            
-            showError(errorMsg);
-        }
+        // Execute stake with proper gas handling
+        showSuccess("Approval confirmed. Now staking...");
         
-    } catch (error) {
-        console.error("Unexpected error:", error);
-        showError("An unexpected error occurred");
-    } finally {
-        hideLoading('stakeBtn');
-    }
-}
-
-// Create First Stake (Admin Only - Updated)
-async function createFirstStake() {
-    try {
-        showLoading('createFirstStakeBtn');
+        // Estimate gas first
+        const gasEstimate = await vnstStakingContract.methods.stake(
+            amountWei,
+            referrer
+        ).estimateGas({ from: currentAccount });
         
-        if (!isAdmin) {
-            showError("Only contract owner can create first stake");
-            hideLoading('createFirstStakeBtn');
-            return;
-        }
+        console.log("Gas estimate:", gasEstimate);
         
-        const stakeAmount = web3.utils.toWei("100", "ether");
+        // Add 30% buffer
+        const gasWithBuffer = Math.floor(gasEstimate * 1.3);
         
-        // Check allowance first and reset if needed
-        const allowance = await vnstTokenContract.methods.allowance(
-            currentAccount,
-            networkConfig[currentNetwork].contractAddress
-        ).call();
-        
-        if (parseInt(allowance) > 0) {
-            await vnstTokenContract.methods.approve(
-                networkConfig[currentNetwork].contractAddress,
-                '0'
-            ).send({ from: currentAccount });
-            
-            await new Promise(resolve => setTimeout(resolve, 30000));
-        }
-        
-        // Set new allowance
-        await vnstTokenContract.methods.approve(
-            networkConfig[currentNetwork].contractAddress,
-            stakeAmount
-        ).send({ from: currentAccount });
-        
-        await new Promise(resolve => setTimeout(resolve, 30000));
-        
-        // Use the special createFirstStake function that allows zero address referrer
-        await vnstStakingContract.methods.createFirstStake(stakeAmount).send({ 
+        const stakeTx = await vnstStakingContract.methods.stake(
+            amountWei,
+            referrer
+        ).send({ 
             from: currentAccount,
-            gas: 300000
+            gas: gasWithBuffer
         });
         
-        showSuccess("First stake created successfully!");
+        console.log("Stake tx hash:", stakeTx.transactionHash);
+        await waitForTransactionReceipt(stakeTx.transactionHash);
+        
+        showSuccess("Tokens staked successfully!");
+        document.getElementById('stakeAmount').value = '';
+        
+        // Update referral link after successful stake
+        updateWalletConnectionUI(currentAccount);
         await loadData();
+        
     } catch (error) {
-        console.error("Error creating first stake:", error);
-        let errorMsg = "Error creating first stake";
+        console.error("Staking failed:", error);
+        let errorMsg = "Staking failed";
         
         if (error.message.includes("revert")) {
             const revertReason = error.message.match(/reason string: '(.+)'/);
             errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
-        } else if (error.message.includes("User denied transaction")) {
-            errorMsg = "Transaction cancelled by user";
-        }
-        
-        showError(errorMsg);
-    } finally {
-        hideLoading('createFirstStakeBtn');
-    }
-}
-
-// Claim Rewards
-async function claimRewards() {
-    const claimBtn = document.getElementById('claimTokenBtn') || document.getElementById('claimUsdtBtn');
-    try {
-        showLoading(claimBtn.id);
-        
-        const pendingRewards = await vnstStakingContract.methods.getPendingRewards(currentAccount).call();
-        const minVNTWithdrawal = 10 * 1e18; // 10 VNT
-        
-        if (parseInt(pendingRewards.vntReward) < parseInt(minVNTWithdrawal)) {
-            showError(`Minimum withdrawal is ${web3.utils.fromWei(minVNTWithdrawal, 'ether')} VNT`);
-            hideLoading(claimBtn.id);
-            return;
-        }
-        
-        await vnstStakingContract.methods.claimRewards().send({ 
-            from: currentAccount,
-            gas: 250000
-        });
-        
-        showSuccess("Rewards claimed successfully!");
-        await loadData();
-        
-    } catch (error) {
-        console.error("Error claiming rewards:", error);
-        let errorMsg = "Claiming rewards failed";
-        
-        if (error.message.includes("revert")) {
-            if (error.message.includes("Below minimum VNT withdrawal")) {
-                errorMsg = `Minimum withdrawal is ${web3.utils.fromWei(10 * 1e18, 'ether')} VNT`;
-            } else if (error.message.includes("Can only claim once per day")) {
-                errorMsg = "You can only claim rewards once per day";
-            } else {
-                const revertReason = error.message.match(/reason string: '(.+)'/);
-                errorMsg = revertReason ? revertReason[1] : "Transaction reverted";
-            }
         } else if (error.message.includes("User denied transaction")) {
             errorMsg = "Transaction cancelled by user";
         } else if (error.message.includes("execution reverted")) {
@@ -731,94 +310,15 @@ async function claimRewards() {
         
         showError(errorMsg);
     } finally {
-        hideLoading(claimBtn.id);
+        hideLoading('stakeBtn');
     }
 }
 
-// Copy Referral Link
-function copyReferralLink() {
-    const referralLink = document.getElementById('referralLink');
-    if (referralLink && referralLink.value) {
-        referralLink.select();
-        document.execCommand('copy');
-        showSuccess("Referral link copied to clipboard!");
-    } else {
-        showError("You need to stake first to get a referral link");
-    }
-}
-
-// Share Referral Link
-function shareReferralLink() {
-    const referralLink = document.getElementById('referralLink');
-    if (referralLink && referralLink.value) {
-        const link = referralLink.value;
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'Join VNST Staking Platform',
-                text: 'Stake VNST tokens and earn rewards!',
-                url: link
-            }).catch(err => {
-                console.error('Error sharing:', err);
-            });
-        } else {
-            window.open(`https://twitter.com/intent/tweet?text=Join%20VNST%20Staking%20Platform%20and%20earn%20rewards!%20${encodeURIComponent(link)}`, '_blank');
-        }
-    } else {
-        showError("You need to stake first to get a referral link");
-    }
-}
-
-// Initialize Event Listeners
-function initEventListeners() {
-    // Wallet Connect Buttons
-    document.querySelectorAll('.wallet-connect-btn, #connectWalletBtn, #teamConnectWalletBtn').forEach(btn => {
-        if (btn) btn.addEventListener('click', connectWallet);
-    });
-    
-    // Stake Button
-    const stakeBtn = document.getElementById('stakeBtn');
-    if (stakeBtn) stakeBtn.addEventListener('click', stakeTokens);
-    
-    // Claim Buttons
-    const claimTokenBtn = document.getElementById('claimTokenBtn');
-    if (claimTokenBtn) claimTokenBtn.addEventListener('click', claimRewards);
-    
-    const claimUsdtBtn = document.getElementById('claimUsdtBtn');
-    if (claimUsdtBtn) claimUsdtBtn.addEventListener('click', claimRewards);
-    
-    // Referral Buttons
-    const copyReferralBtn = document.getElementById('copyReferralBtn');
-    if (copyReferralBtn) copyReferralBtn.addEventListener('click', copyReferralLink);
-    
-    const shareReferralBtn = document.getElementById('shareReferralBtn');
-    if (shareReferralBtn) shareReferralBtn.addEventListener('click', shareReferralLink);
-    
-    // Menu Toggle
-    const menuToggle = document.querySelector('.menu-toggle');
-    if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
-    
-    // Create First Stake Button
-    const createFirstStakeBtn = document.getElementById('createFirstStakeBtn');
-    if (createFirstStakeBtn) createFirstStakeBtn.addEventListener('click', createFirstStake);
-    
-    // Auto-fill referrer address from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const refAddress = urlParams.get('ref');
-    const referrerInput = document.getElementById('referrerAddress');
-    if (refAddress && web3.utils.isAddress(refAddress) && referrerInput && !referrerInput.value) {
-        referrerInput.value = refAddress;
-    }
-}
-
-// Initialize App
+// Initialize App with better error handling
 async function initApp() {
     try {
-        // Initialize event listeners first
+        // Initialize event listeners
         initEventListeners();
-        
-        // Setup animations
-        setupCardAnimations();
         
         // Add loading indicator
         if (!document.getElementById('loadingIndicator')) {
@@ -829,6 +329,17 @@ async function initApp() {
             loadingDiv.style.padding = '20px';
             loadingDiv.innerHTML = '<div class="loading-spinner"></div> Loading data...';
             document.body.insertBefore(loadingDiv, document.body.firstChild);
+        }
+        
+        // Add message container if not exists
+        if (!document.getElementById('messageContainer')) {
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'messageContainer';
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.right = '20px';
+            messageDiv.style.zIndex = '1000';
+            document.body.appendChild(messageDiv);
         }
         
         if (window.ethereum) {
