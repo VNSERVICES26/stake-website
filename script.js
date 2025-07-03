@@ -427,6 +427,7 @@ async function stakeTokens() {
     try {
         showLoading('stakeBtn');
         
+        // Get input values
         const amount = document.getElementById('stakeAmount').value;
         let referrer = document.getElementById('referrerAddress').value;
         
@@ -447,104 +448,110 @@ async function stakeTokens() {
             return;
         }
         
-        // Handle referrer logic
+        // Handle referrer
         const urlParams = new URLSearchParams(window.location.search);
         const urlRef = urlParams.get('ref');
         
         if (!referrer && urlRef && web3.utils.isAddress(urlRef)) {
             referrer = urlRef;
         } else if (!referrer) {
-            // Default to contract owner if no referrer provided
             referrer = await vnstStakingContract.methods.owner().call();
         }
         
-        // Validate referrer
         if (!web3.utils.isAddress(referrer)) {
             showError("Invalid referrer address");
             hideLoading('stakeBtn');
             return;
         }
         
-        // Check if contract is paused
+        // Check contract state
         const isPaused = await vnstStakingContract.methods.paused().call();
         if (isPaused) {
-            showError("Staking is currently paused by the contract owner");
+            showError("Staking is currently paused");
             hideLoading('stakeBtn');
             return;
         }
         
-        // Check if user is blacklisted
+        // Check blacklist status
         const isBlacklisted = await vnstStakingContract.methods.blacklisted(currentAccount).call();
         if (isBlacklisted) {
-            showError("Your account is blacklisted from staking");
+            showError("Your account is blacklisted");
             hideLoading('stakeBtn');
             return;
         }
         
-        // Debug: Log current allowance
+        // 1. Check current allowance
         const currentAllowance = await vnstTokenContract.methods.allowance(
             currentAccount,
             networkConfig[currentNetwork].contractAddress
         ).call();
+        
         console.log("Current allowance:", currentAllowance);
         
-        // Reset allowance to zero first if needed
+        // 2. Reset allowance to zero if needed
         if (parseInt(currentAllowance) > 0) {
             showSuccess("Resetting previous approval...");
             try {
                 const resetTx = await vnstTokenContract.methods.approve(
                     networkConfig[currentNetwork].contractAddress,
                     '0'
-                ).send({ from: currentAccount, gas: 200000 });
+                ).send({ from: currentAccount });
                 
-                console.log("Reset approval tx:", resetTx);
-                await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for block confirmation
+                console.log("Reset tx hash:", resetTx.transactionHash);
+                
+                // Wait for reset to be confirmed
+                const resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
+                while (!resetReceipt || !resetReceipt.blockNumber) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    resetReceipt = await web3.eth.getTransactionReceipt(resetTx.transactionHash);
+                }
+                console.log("Reset confirmed in block:", resetReceipt.blockNumber);
             } catch (resetError) {
-                console.error("Reset approval error:", resetError);
-                // Continue even if reset fails - might not be necessary
+                console.error("Reset error:", resetError);
+                // Continue even if reset fails
             }
         }
         
-        // Set new allowance
+        // 3. Set new allowance
         showSuccess("Approving tokens...");
         try {
             const approveTx = await vnstTokenContract.methods.approve(
                 networkConfig[currentNetwork].contractAddress,
                 amountWei
-            ).send({ from: currentAccount, gas: 200000 });
+            ).send({ from: currentAccount });
             
-            console.log("Approval tx:", approveTx);
-            await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for block confirmation
+            console.log("Approve tx hash:", approveTx.transactionHash);
+            
+            // Wait for approval to be confirmed
+            let approveReceipt = await web3.eth.getTransactionReceipt(approveTx.transactionHash);
+            while (!approveReceipt || !approveReceipt.blockNumber) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                approveReceipt = await web3.eth.getTransactionReceipt(approveTx.transactionHash);
+            }
+            console.log("Approval confirmed in block:", approveReceipt.blockNumber);
             
             // Verify the new allowance
             const newAllowance = await vnstTokenContract.methods.allowance(
                 currentAccount,
                 networkConfig[currentNetwork].contractAddress
             ).call();
+            
             console.log("New allowance:", newAllowance);
             
-            if (parseInt(newAllowance) < parseInt(amountWei)) {
-                throw new Error("Approval amount not set correctly");
+            if (BigInt(newAllowance) < BigInt(amountWei)) {
+                throw new Error(`Approval failed. Current allowance: ${newAllowance}, Required: ${amountWei}`);
             }
             
             showSuccess("Approval confirmed. Now staking...");
         } catch (approveError) {
-            console.error("Approval error:", approveError);
-            showError(approveError.message.includes("User denied transaction") 
-                ? "Approval cancelled by user" 
-                : "Token approval failed");
+            console.error("Approval failed:", approveError);
+            showError("Token approval failed. Please try again.");
             hideLoading('stakeBtn');
             return;
         }
         
-        // Execute stake transaction with debug info
+        // 4. Execute stake with proper gas handling
         try {
-            console.log("Attempting to stake:", {
-                amount: amountWei,
-                referrer: referrer,
-                from: currentAccount
-            });
-            
             // Estimate gas first
             const gasEstimate = await vnstStakingContract.methods.stake(
                 amountWei,
@@ -553,8 +560,8 @@ async function stakeTokens() {
             
             console.log("Gas estimate:", gasEstimate);
             
-            // Add 20% buffer to gas estimate
-            const gasWithBuffer = Math.floor(gasEstimate * 1.2);
+            // Add 30% buffer
+            const gasWithBuffer = Math.floor(gasEstimate * 1.3);
             
             const stakeTx = await vnstStakingContract.methods.stake(
                 amountWei,
@@ -564,49 +571,42 @@ async function stakeTokens() {
                 gas: gasWithBuffer
             });
             
-            console.log("Stake tx:", stakeTx);
+            console.log("Stake tx hash:", stakeTx.transactionHash);
+            
+            // Wait for stake to be confirmed
+            let stakeReceipt = await web3.eth.getTransactionReceipt(stakeTx.transactionHash);
+            while (!stakeReceipt || !stakeReceipt.blockNumber) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                stakeReceipt = await web3.eth.getTransactionReceipt(stakeTx.transactionHash);
+            }
+            console.log("Stake confirmed in block:", stakeReceipt.blockNumber);
             
             showSuccess("Tokens staked successfully!");
             document.getElementById('stakeAmount').value = '';
             await loadData();
             
         } catch (stakeError) {
-            console.error("Staking error details:", stakeError);
+            console.error("Staking failed:", stakeError);
             
-            // Try to extract revert reason
+            // Try to decode revert reason
             let errorMsg = "Staking failed";
-            
-            if (stakeError.receipt && stakeError.receipt.logs) {
-                // Try to parse revert reason from logs
-                const revertReason = web3.eth.abi.decodeLog(
-                    [{
-                        type: 'string',
-                        name: 'reason'
-                    }],
-                    stakeError.receipt.logs[0].data,
-                    [stakeError.receipt.logs[0].topics[0]]
-                );
-                
-                if (revertReason) {
-                    errorMsg = `Transaction failed: ${revertReason.reason}`;
+            if (stakeError.data) {
+                try {
+                    const decoded = web3.eth.abi.decodeParameter('string', stakeError.data.slice(10));
+                    errorMsg = decoded;
+                } catch (decodeError) {
+                    console.error("Couldn't decode error:", decodeError);
                 }
-            } else if (stakeError.message.includes("Referrer cannot be zero address")) {
-                errorMsg = "Please enter a valid referrer address";
-            } else if (stakeError.message.includes("Cannot refer yourself")) {
-                errorMsg = "You cannot refer yourself";
-            } else if (stakeError.message.includes("User denied transaction")) {
-                errorMsg = "Transaction cancelled by user";
             } else if (stakeError.message.includes("execution reverted")) {
-                const revertReason = stakeError.message.split("execution reverted: ")[1] || "Unknown reason";
-                errorMsg = `Transaction failed: ${revertReason}`;
+                errorMsg = stakeError.message.split("execution reverted: ")[1] || "Unknown reason";
             }
             
             showError(errorMsg);
         }
         
     } catch (error) {
-        console.error("General staking error:", error);
-        showError("An unexpected error occurred during staking");
+        console.error("Unexpected error:", error);
+        showError("An unexpected error occurred");
     } finally {
         hideLoading('stakeBtn');
     }
